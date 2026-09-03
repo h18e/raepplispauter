@@ -1,0 +1,79 @@
+# XcodeGen-Spezifikation (optional).
+#
+# Das Repository enthält bereits ein fertiges `Raepplispauter.xcodeproj` – diese
+# Datei ist nur nötig, wenn das Projekt neu erzeugt werden soll, z. B. nach
+# grösseren Umbauten oder bei Merge-Konflikten in der .pbxproj:
+#
+#   brew install xcodegen
+#   cd Raepplispauter
+#   xcodegen generate
+#
+# Die Quelldateien werden per Ordner eingebunden; neue Dateien landen dadurch
+# automatisch im richtigen Target.
+
+name: Raepplispauter
+options:
+  bundleIdPrefix: ch.hebera
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  developmentLanguage: de
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  Raepplispauter:
+    type: application
+    platform: iOS
+    sources:
+      - path: Raepplispauter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.hebera.raepplispauter
+        PRODUCT_NAME: Raepplispauter
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Config/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Räpplispauter
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        CODE_SIGN_ENTITLEMENTS: Config/Raepplispauter.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        # DEVELOPMENT_TEAM hier eintragen oder in Xcode unter "Signing & Capabilities" wählen.
+        DEVELOPMENT_TEAM: ""
+
+  RaepplispauterTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RaepplispauterTests
+    dependencies:
+      - target: Raepplispauter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.hebera.raepplispauter.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Raepplispauter:
+    build:
+      targets:
+        Raepplispauter: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - RaepplispauterTests

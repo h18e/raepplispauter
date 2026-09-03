@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Nur die Schlüssel, die Xcode nicht selber generiert.
+		Alles Übrige (CFBundleName, Version, Szenen-Manifest …) kommt aus
+		GENERATE_INFOPLIST_FILE = YES.
+	-->
+
+	<!-- Pflicht, damit die App eingehende iCloud-Freigabe-Einladungen annehmen darf.
+	     Ohne diesen Schlüssel ruft iOS `userDidAcceptCloudKitShareWith` nie auf. -->
+	<key>CKSharingSupported</key>
+	<true/>
+
+	<!-- CloudKit meldet Änderungen des Partnergeräts über stille Push-Nachrichten;
+	     dafür braucht die App den Hintergrundmodus "remote-notification". -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- Dark Mode ist das primäre Erscheinungsbild der App. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+</dict>
+</plist>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788" systemVersion="25A000" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <!--
+        WICHTIG (CloudKit-Kompatibilität):
+        - Jedes Attribut ist entweder optional oder hat einen Default-Wert.
+        - Keine Unique-Constraints (von CloudKit nicht unterstützt).
+        - Jede Beziehung besitzt eine Inverse.
+        - Löschregel "Cascade" (Deny wäre nicht erlaubt).
+    -->
+    <entity name="Trip" representedClassName="Trip" syncable="YES">
+        <attribute name="costSharePercentA" optional="NO" attributeType="Double" defaultValueString="50" usesScalarValueType="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="currencyCode" optional="YES" attributeType="String" defaultValueString="EUR"/>
+        <attribute name="endDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isClosed" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isShared" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="personAName" optional="YES" attributeType="String" defaultValueString="Raphi"/>
+        <attribute name="personBName" optional="YES" attributeType="String" defaultValueString="Gini"/>
+        <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Expense" inverseName="trip" inverseEntity="Expense"/>
+    </entity>
+    <entity name="Expense" representedClassName="Expense" syncable="YES">
+        <attribute name="amount" optional="YES" attributeType="Decimal" defaultValueString="0"/>
+        <attribute name="amountCHF" optional="YES" attributeType="Decimal"/>
+        <attribute name="amountTrip" optional="YES" attributeType="Decimal"/>
+        <attribute name="categoryRaw" optional="YES" attributeType="String" defaultValueString="restaurant"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="currencyCode" optional="YES" attributeType="String" defaultValueString="EUR"/>
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isRateProvisional" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="lastEditedBy" optional="YES" attributeType="String"/>
+        <attribute name="note" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="payerRaw" optional="YES" attributeType="String" defaultValueString="A"/>
+        <attribute name="rateDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="rateSourceRaw" optional="YES" attributeType="String" defaultValueString="unknown"/>
+        <attribute name="rateToCHF" optional="YES" attributeType="Decimal"/>
+        <attribute name="rateTripToCHF" optional="YES" attributeType="Decimal"/>
+        <attribute name="splitPercentA" optional="NO" attributeType="Double" defaultValueString="50" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="trip" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Trip" inverseName="expenses" inverseEntity="Trip"/>
+    </entity>
+</model>

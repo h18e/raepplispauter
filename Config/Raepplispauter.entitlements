@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- CloudKit-Container. Muss mit PersistenceController.cloudKitContainerID
+	     und dem Container im Apple-Developer-Portal übereinstimmen. -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.ch.hebera.raepplispauter</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+
+	<!-- Stille Push-Nachrichten für den CloudKit-Sync.
+	     Für TestFlight/App Store auf "production" wechseln (macht Xcode beim
+	     Archivieren automatisch). -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>
