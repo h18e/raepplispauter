@@ -10,6 +10,57 @@ zwischen **zwei getrennten Apple-Accounts**.
 - Kein eigener Server – ausschliesslich iCloud
 - UI-Texte in Bärndütsch, zentral in `Resources/Strings.swift` + `Localizable.xcstrings`
 - Deployment-Target: **iOS 26.0**
+- **Lokalmodus** für Tests mit einer gratis Apple-ID (Standard, siehe Abschnitt 0)
+
+---
+
+## 0. Lokalmodus vs. iCloud-Modus
+
+Die App kennt zwei Betriebsarten. **Ausgeliefert wird sie im Lokalmodus**, damit
+sie sich mit einer gratis Apple-ID sofort aufs iPhone spielen lässt.
+
+| | Lokalmodus (Standard) | iCloud-Modus |
+|---|---|---|
+| Apple-Account | gratis Apple-ID reicht | **Apple Developer Program (99 $/Jahr)** |
+| Erfassen, Bilanz, Logbuch, Auswertung, Abrechnung, CSV | ✅ | ✅ |
+| Sync zwischen zwei Geräten | ❌ | ✅ |
+| Reise mit dem Partner teilen | ❌ | ✅ |
+| App läuft nach Installation | 7 Tage, dann neu installieren | 1 Jahr |
+
+### Umschalten – zwei Stellen, beide müssen zusammenpassen
+
+**1. Code:** `Raepplispauter/App/AppConfiguration.swift`
+
+```swift
+public static let syncMode: SyncMode = .localOnly   // bzw. .cloudKit
+```
+
+**2. Signierung:** Xcode → Projekt **Raepplispauter** → TARGETS → **Raepplispauter**
+→ **Build Settings** → oben **All** wählen → nach `Code Signing Entitlements`
+suchen → Wert setzen:
+
+| `syncMode` | Code Signing Entitlements |
+|---|---|
+| `.localOnly` | `Config/Raepplispauter-Local.entitlements` |
+| `.cloudKit` | `Config/Raepplispauter.entitlements` |
+
+> **Warum beides?** Eine gratis Apple-ID kann keine iCloud-Entitlements
+> signieren – wären sie aktiv, scheiterte schon das Erstellen des
+> Provisioning-Profils, noch vor dem ersten Build.
+
+### Sicherheitsnetz
+
+Steht `syncMode` auf `.cloudKit`, ist iCloud aber nicht verfügbar (fehlendes
+Entitlement, kein iCloud-Account, kein Container), **stürzt die App nicht ab**:
+`PersistenceController` fällt automatisch auf den Lokalmodus zurück und vermerkt
+das im Sync-Protokoll sowie in den Einstellungen. Abschalten lässt sich dieses
+Verhalten über `AppConfiguration.allowsAutomaticLocalFallback`.
+
+### Datenbestand beim Wechsel
+
+Beide Modi benutzen dieselbe Datei (`private.sqlite`). Wer später vom Lokal- in
+den iCloud-Modus wechselt, **behält seine erfassten Reisen und Ausgaben**; sie
+werden beim ersten Start in iCloud hochgeladen.
 
 ---
 
@@ -19,10 +70,13 @@ zwischen **zwei getrennten Apple-Accounts**.
 open Raepplispauter/Raepplispauter.xcodeproj
 ```
 
-Danach in Xcode drei Dinge setzen (einmalig, sie hängen am Apple-Developer-Account):
+Danach in Xcode setzen:
 
 1. **Target „Raepplispauter“ → Signing & Capabilities → Team** auswählen.
 2. **Bundle Identifier** anpassen, falls `ch.hebera.raepplispauter` schon vergeben ist.
+
+Die folgenden Punkte betreffen **nur den iCloud-Modus** (siehe Abschnitt 0):
+
 3. **iCloud-Container** prüfen: Die App erwartet `iCloud.ch.hebera.raepplispauter`.
    Wird ein anderer Container verwendet, müssen **zwei** Stellen angepasst werden:
    - `Config/Raepplispauter.entitlements`
@@ -210,3 +264,6 @@ cd Raepplispauter && python3 Tools/generate-xcstrings.py
   (`Assets.xcassets/AppIcon.appiconset`); dort noch ein 1024×1024-PNG einsetzen.
 * Der **CloudKit-Sync lässt sich nur auf echten Geräten** mit angemeldetem
   iCloud-Account sinnvoll testen, nicht im Simulator ohne Account.
+* Mit einer **gratis Apple-ID** gilt: App läuft 7 Tage, danach in Xcode nochmals
+  ⌘R (die erfassten Daten bleiben erhalten, solange die App nicht gelöscht wird);
+  maximal 3 selbst signierte Apps pro Gerät; kein iCloud, kein TestFlight.

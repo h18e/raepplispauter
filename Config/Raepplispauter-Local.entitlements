@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		LOKALMODUS – bewusst leer.
+
+		Diese Datei wird verwendet, wenn die App mit einer *gratis* Apple-ID
+		signiert wird. Ein kostenloser Account kann keine iCloud- oder
+		Push-Entitlements signieren; wären sie hier eingetragen, würde bereits
+		das Erstellen des Provisioning-Profils scheitern.
+
+		Passend dazu muss in Raepplispauter/App/AppConfiguration.swift
+		`syncMode` auf `.localOnly` stehen.
+
+		Für den vollen iCloud-Betrieb (bezahltes Apple Developer Program):
+		Build Setting „Code Signing Entitlements“ auf
+		Config/Raepplispauter.entitlements umstellen und `syncMode` auf
+		`.cloudKit` setzen. Details im README, Abschnitt „Lokalmodus“.
+	-->
+</dict>
+</plist>

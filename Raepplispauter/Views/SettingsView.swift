@@ -56,11 +56,24 @@ struct SettingsView: View {
                 Text(L.settingsMarkupHint)
             }
 
-            // MARK: iCloud
-            Section(L.settingsICloud) {
-                LabeledContent(L.settingsICloud) {
-                    Text(appState.iCloudStatusText)
-                        .foregroundStyle(appState.iCloudStatus == .available ? Theme.accent : Theme.warning)
+            // MARK: Sync
+            Section {
+                LabeledContent(L.settingsSyncMode) {
+                    Text(appState.isLocalOnly ? L.syncModeLocal : L.syncModeCloud)
+                        .foregroundStyle(appState.isLocalOnly ? Theme.warning : Theme.accent)
+                }
+
+                if !appState.isLocalOnly {
+                    LabeledContent(L.settingsICloud) {
+                        Text(appState.iCloudStatusText)
+                            .foregroundStyle(appState.iCloudStatus == .available ? Theme.accent : Theme.warning)
+                    }
+                }
+
+                if appState.didFallBackToLocal {
+                    Label(L.syncModeFallbackNotice, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Theme.warning)
                 }
 
                 Picker(L.settingsDeviceOwner, selection: $deviceOwner) {
@@ -75,6 +88,12 @@ struct SettingsView: View {
                     SyncLogView()
                 } label: {
                     Label(L.settingsSyncLog, systemImage: "clock.arrow.circlepath")
+                }
+            } header: {
+                Text(L.settingsSyncMode)
+            } footer: {
+                if appState.isLocalOnly {
+                    Text(L.syncModeLocalHint)
                 }
             }
         }

@@ -83,7 +83,7 @@ public final class ConflictAuditor: ObservableObject {
 
     // MARK: - Beobachtung
 
-    public func start(container: NSPersistentCloudKitContainer) {
+    public func start(container: NSPersistentCloudKitContainer, syncMode: SyncMode) {
         self.container = container
         observer = NotificationCenter.default.addObserver(
             forName: .NSPersistentStoreRemoteChange,
@@ -92,7 +92,10 @@ public final class ConflictAuditor: ObservableObject {
         ) { [weak self] _ in
             self?.processHistory()
         }
-        log(.init(date: Date(), author: AppSettings.transactionAuthor, kind: .info, detail: L.syncLogStarted))
+        log(.init(date: Date(),
+                  author: AppSettings.transactionAuthor,
+                  kind: .info,
+                  detail: syncMode == .cloudKit ? L.syncLogStarted : L.syncLogStartedLocal))
     }
 
     /// Liest alle Transaktionen seit dem letzten Durchgang und protokolliert

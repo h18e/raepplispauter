@@ -22,6 +22,14 @@ import Foundation
 /// ist ohne Netz vollständig nutzbar. `NSPersistentCloudKitContainer` schiebt die
 /// Änderungen im Hintergrund hoch, sobald wieder eine Verbindung besteht.
 ///
+/// ## Lokalmodus
+/// Steht `AppConfiguration.syncMode` auf `.localOnly` (oder ist CloudKit mangels
+/// Entitlement gar nicht verfügbar), wird **nur der private Store ohne
+/// CloudKit-Optionen** geladen. Die App ist dann voll benutzbar – Erfassen,
+/// Bilanz, Logbuch, Auswertung, Abrechnung, CSV-Export – nur Sync und Teilen
+/// fallen weg. Der Dateipfad bleibt derselbe, ein späterer Wechsel auf CloudKit
+/// übernimmt die bereits erfassten Daten.
+///
 /// ## Konflikte
 /// * `mergeByPropertyObjectTrump` löst Konflikte **feldweise** – zwei Personen, die
 ///   offline verschiedene Ausgaben erfassen, kommen beide durch; nur bei
@@ -40,21 +48,96 @@ public final class PersistenceController {
 
     public let container: NSPersistentCloudKitContainer
 
+    /// Tatsächlich verwendete Betriebsart. Kann von `AppConfiguration.syncMode`
+    /// abweichen, wenn CloudKit nicht verfügbar war (siehe Fallback unten).
+    public let syncMode: SyncMode
+
+    /// true, wenn `.cloudKit` gewünscht war, aber auf `.localOnly` zurückgefallen wurde.
+    public let didFallBackToLocal: Bool
+
     /// Store für selbst angelegte Reisen (private CloudKit-Datenbank).
     public private(set) var privateStore: NSPersistentStore?
     /// Store für Reisen, die der Partner-Account geteilt hat (shared CloudKit-Datenbank).
+    /// Im Lokalmodus immer `nil`.
     public private(set) var sharedStore: NSPersistentStore?
 
     public private(set) var loadError: Error?
 
     public var viewContext: NSManagedObjectContext { container.viewContext }
 
+    /// Kurzform für die vielen Stellen, die nur wissen müssen "läuft ohne iCloud?".
+    public var isLocalOnly: Bool { syncMode == .localOnly }
+
     private let conflictAuditor = ConflictAuditor.shared
 
     // MARK: - Aufbau
 
-    public init(inMemory: Bool = false) {
-        container = NSPersistentCloudKitContainer(name: "Raepplispauter")
+    public init(inMemory: Bool = false, syncMode requestedMode: SyncMode = AppConfiguration.syncMode) {
+        // Tests und Previews laufen grundsätzlich lokal.
+        let wanted: SyncMode = inMemory ? .localOnly : requestedMode
+
+        var result = Self.loadContainer(mode: wanted, inMemory: inMemory)
+        var fellBack = false
+
+        // Sicherheitsnetz: CloudKit gewünscht, aber nicht verfügbar (fehlendes
+        // Entitlement bei gratis Apple-ID, kein iCloud-Account, kein Container).
+        // Statt die App scheitern zu lassen, wird lokal weitergemacht.
+        if result.error != nil, wanted == .cloudKit, AppConfiguration.allowsAutomaticLocalFallback {
+            result = Self.loadContainer(mode: .localOnly, inMemory: inMemory)
+            fellBack = true
+        }
+
+        container = result.container
+        syncMode = result.mode
+        didFallBackToLocal = fellBack
+        loadError = result.error
+
+        // Stores zuordnen. Im Lokalmodus gibt es nur den privaten Store.
+        let coordinator = container.persistentStoreCoordinator
+        if inMemory {
+            privateStore = coordinator.persistentStores.first
+        } else if let storesURL = container.persistentStoreDescriptions.first?.url?.deletingLastPathComponent() {
+            privateStore = coordinator.persistentStore(for: storesURL.appendingPathComponent(Self.privateStoreName))
+            if result.mode == .cloudKit {
+                sharedStore = coordinator.persistentStore(for: storesURL.appendingPathComponent(Self.sharedStoreName))
+            }
+        }
+
+        let context = container.viewContext
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        context.transactionAuthor = AppSettings.transactionAuthor
+        context.name = "viewContext"
+        try? context.setQueryGenerationFrom(.current)
+
+        if !inMemory {
+            conflictAuditor.start(container: container, syncMode: syncMode)
+            if fellBack {
+                conflictAuditor.log(.init(date: Date(),
+                                          author: AppSettings.transactionAuthor,
+                                          kind: .error,
+                                          detail: L.syncLogCloudUnavailable))
+            }
+        }
+    }
+
+    // MARK: - Container bauen
+
+    static let privateStoreName = "private.sqlite"
+    static let sharedStoreName = "shared.sqlite"
+
+    private struct LoadResult {
+        let container: NSPersistentCloudKitContainer
+        let mode: SyncMode
+        let error: Error?
+    }
+
+    /// Baut einen Container für die gewünschte Betriebsart und lädt seine Stores.
+    ///
+    /// Der Datei-Pfad ist in beiden Modi derselbe (`private.sqlite`) – wer später
+    /// vom Lokalmodus auf CloudKit umstellt, behält damit seine erfassten Daten.
+    private static func loadContainer(mode: SyncMode, inMemory: Bool) -> LoadResult {
+        let container = NSPersistentCloudKitContainer(name: "Raepplispauter")
 
         guard let privateDescription = container.persistentStoreDescriptions.first else {
             fatalError("Keine Store-Beschreibung vorhanden – Modell nicht gefunden.")
@@ -67,55 +150,53 @@ public final class PersistenceController {
             container.persistentStoreDescriptions = [privateDescription]
         } else {
             let storesURL = privateDescription.url!.deletingLastPathComponent()
-            privateDescription.url = storesURL.appendingPathComponent("private.sqlite")
+            privateDescription.url = storesURL.appendingPathComponent(privateStoreName)
 
-            // Persistent History ist Pflicht für CloudKit und Grundlage des Konflikt-Protokolls.
+            // Persistent History: für CloudKit Pflicht, lokal die Grundlage des
+            // Änderungsprotokolls. Wird in beiden Modi eingeschaltet, damit ein
+            // späterer Wechsel keine Store-Migration braucht.
             privateDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             privateDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
 
-            let privateOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: Self.cloudKitContainerID)
-            privateOptions.databaseScope = .private
-            privateDescription.cloudKitContainerOptions = privateOptions
+            switch mode {
+            case .localOnly:
+                // Ohne CloudKit-Optionen verhält sich der Container wie ein
+                // gewöhnlicher NSPersistentContainer – rein lokal.
+                privateDescription.cloudKitContainerOptions = nil
+                container.persistentStoreDescriptions = [privateDescription]
 
-            // Zweiter Store für geteilte Daten – identisches Modell, andere Datenbank.
-            guard let sharedDescription = privateDescription.copy() as? NSPersistentStoreDescription else {
-                fatalError("Store-Beschreibung konnte nicht kopiert werden.")
+            case .cloudKit:
+                let privateOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudKitContainerID)
+                privateOptions.databaseScope = .private
+                privateDescription.cloudKitContainerOptions = privateOptions
+
+                // Zweiter Store für geteilte Daten – identisches Modell, andere Datenbank.
+                guard let sharedDescription = privateDescription.copy() as? NSPersistentStoreDescription else {
+                    fatalError("Store-Beschreibung konnte nicht kopiert werden.")
+                }
+                sharedDescription.url = storesURL.appendingPathComponent(sharedStoreName)
+                let sharedOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudKitContainerID)
+                sharedOptions.databaseScope = .shared
+                sharedDescription.cloudKitContainerOptions = sharedOptions
+
+                container.persistentStoreDescriptions = [privateDescription, sharedDescription]
             }
-            sharedDescription.url = storesURL.appendingPathComponent("shared.sqlite")
-            let sharedOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: Self.cloudKitContainerID)
-            sharedOptions.databaseScope = .shared
-            sharedDescription.cloudKitContainerOptions = sharedOptions
-
-            container.persistentStoreDescriptions = [privateDescription, sharedDescription]
         }
 
         var failure: Error?
         container.loadPersistentStores { _, error in
-            if let error { failure = error }
+            if let error, failure == nil { failure = error }
         }
-        loadError = failure
 
-        if !inMemory {
-            let coordinator = container.persistentStoreCoordinator
-            let storesURL = container.persistentStoreDescriptions.first?.url?.deletingLastPathComponent()
-            if let storesURL {
-                privateStore = coordinator.persistentStore(for: storesURL.appendingPathComponent("private.sqlite"))
-                sharedStore = coordinator.persistentStore(for: storesURL.appendingPathComponent("shared.sqlite"))
+        // Bei einem Fehlschlag alle bereits geöffneten Stores wieder schliessen,
+        // damit der Fallback-Container dieselbe Datei sauber öffnen kann.
+        if failure != nil {
+            for store in container.persistentStoreCoordinator.persistentStores {
+                try? container.persistentStoreCoordinator.remove(store)
             }
-        } else {
-            privateStore = container.persistentStoreCoordinator.persistentStores.first
         }
 
-        let context = container.viewContext
-        context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.transactionAuthor = AppSettings.transactionAuthor
-        context.name = "viewContext"
-        try? context.setQueryGenerationFrom(.current)
-
-        if !inMemory {
-            conflictAuditor.start(container: container)
-        }
+        return LoadResult(container: container, mode: mode, error: failure)
     }
 
     /// Vorschau-/Testcontainer mit Beispieldaten.

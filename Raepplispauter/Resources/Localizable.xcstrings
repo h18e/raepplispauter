@@ -1530,6 +1530,17 @@
         }
       }
     },
+    "settings.syncMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betriebsart"
+          }
+        }
+      }
+    },
     "settings.title": {
       "extractionState": "manual",
       "localizations": {
@@ -1695,6 +1706,17 @@
         }
       }
     },
+    "sharing.localMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Lokalmodus cha me nüt teile."
+          }
+        }
+      }
+    },
     "sharing.manage": {
       "extractionState": "manual",
       "localizations": {
@@ -1827,6 +1849,17 @@
         }
       }
     },
+    "syncLog.cloudUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud het nid chönne gstartet wärde – d App louft lokal wyter."
+          }
+        }
+      }
+    },
     "syncLog.deleted": {
       "extractionState": "manual",
       "localizations": {
@@ -1893,6 +1926,17 @@
         }
       }
     },
+    "syncLog.startedLocal": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App im Lokalmodus gstartet – kei iCloud."
+          }
+        }
+      }
+    },
     "syncLog.title": {
       "extractionState": "manual",
       "localizations": {
@@ -1922,6 +1966,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gänderet: %@ – %@"
+          }
+        }
+      }
+    },
+    "syncMode.cloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud-Sync isch a"
+          }
+        }
+      }
+    },
+    "syncMode.fallbackNotice": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud isch nid verfüegbar gsi – d App isch automatisch uf Lokalmodus umgschtellt."
+          }
+        }
+      }
+    },
+    "syncMode.local": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nume lokal – ohni iCloud"
+          }
+        }
+      }
+    },
+    "syncMode.localHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D App louft im Lokalmodus: alli Date blybe uf däm Grät, es git kei Sync und kei Teile mit em Partner. Für ds Teile bruuchts es zahlts Apple Developer Program – wie me umschaltet, steit im README under «Lokalmodus»."
           }
         }
       }

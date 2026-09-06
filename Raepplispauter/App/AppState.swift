@@ -47,9 +47,17 @@ public final class AppState: ObservableObject {
     /// Beim App-Start: iCloud-Status prüfen, Kurse aktualisieren, provisorische
     /// Ausgaben nachrechnen. Fehler sind unkritisch – die App bleibt offline nutzbar.
     public func performStartupTasks(context: NSManagedObjectContext) async {
-        iCloudStatus = await SharingController.shared.accountStatus()
+        if !isLocalOnly {
+            iCloudStatus = await SharingController.shared.accountStatus()
+        }
         await refreshRates(context: context)
     }
+
+    /// Läuft die App ohne iCloud? (Schalter in `AppConfiguration` oder Fallback.)
+    public var isLocalOnly: Bool { PersistenceController.shared.isLocalOnly }
+
+    /// true, wenn CloudKit gewünscht war, aber nicht verfügbar ist.
+    public var didFallBackToLocal: Bool { PersistenceController.shared.didFallBackToLocal }
 
     public func refreshRates(context: NSManagedObjectContext) async {
         guard !isRefreshingRates else { return }
@@ -69,6 +77,7 @@ public final class AppState: ObservableObject {
     }
 
     public var iCloudStatusText: String {
+        if isLocalOnly { return L.syncModeLocal }
         switch iCloudStatus {
         case .available: return L.settingsICloudOk
         case .noAccount: return L.settingsICloudMissing

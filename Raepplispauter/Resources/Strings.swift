@@ -207,6 +207,7 @@ public enum L {
     public static let settingsRefreshRates = t("settings.refreshRates", "Kürs jetz aktualisiere")
     public static let settingsNeverRefreshed = t("settings.neverRefreshed", "No nie aktualisiert")
     public static let settingsSyncLog = t("settings.syncLog", "Sync-Protokoll")
+    public static let settingsSyncMode = t("settings.syncMode", "Betriebsart")
     public static let settingsDeviceOwner = t("settings.deviceOwner", "Wär bisch du uf däm Grät?")
     public static let settingsICloud = t("settings.icloud", "iCloud")
     public static let settingsICloudOk = t("settings.icloudOk", "Bereit")
@@ -222,6 +223,16 @@ public enum L {
         String(localized: "settings.cachedDays", defaultValue: "\(count) Kurstäg gspicheret")
     }
 
+    // MARK: - Betriebsart (Lokalmodus / iCloud)
+
+    public static let syncModeLocal = t("syncMode.local", "Nume lokal – ohni iCloud")
+    public static let syncModeCloud = t("syncMode.cloud", "iCloud-Sync isch a")
+    public static let syncModeLocalHint = t("syncMode.localHint",
+                                            "D App louft im Lokalmodus: alli Date blybe uf däm Grät, es git kei Sync und kei Teile mit em Partner. Für ds Teile bruuchts es zahlts Apple Developer Program – wie me umschaltet, steit im README under «Lokalmodus».")
+    public static let syncModeFallbackNotice = t("syncMode.fallbackNotice",
+                                                 "iCloud isch nid verfüegbar gsi – d App isch automatisch uf Lokalmodus umgschtellt.")
+    public static let sharingLocalMode = t("sharing.localMode", "Im Lokalmodus cha me nüt teile.")
+
     // MARK: - Sync-Protokoll
 
     public static let syncLogTitle = t("syncLog.title", "Sync-Protokoll")
@@ -230,6 +241,9 @@ public enum L {
     public static let syncLogHint = t("syncLog.hint",
                                       "Da gsehsch alli Änderige, wo vom andere Grät cho si – so wird nüt still überschriebe.")
     public static let syncLogStarted = t("syncLog.started", "Sync isch gstartet.")
+    public static let syncLogStartedLocal = t("syncLog.startedLocal", "App im Lokalmodus gstartet – kei iCloud.")
+    public static let syncLogCloudUnavailable = t("syncLog.cloudUnavailable",
+                                                  "iCloud het nid chönne gstartet wärde – d App louft lokal wyter.")
     public static let syncLogAuthorCloud = t("syncLog.authorCloud", "iCloud")
 
     public static func syncLogInserted(_ subject: String) -> String {

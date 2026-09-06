@@ -44,13 +44,18 @@ public final class SharingController: ObservableObject {
 
     // MARK: - Status
 
+    /// Im Lokalmodus gibt es kein CloudKit – sämtliche Sharing-Funktionen sind aus.
+    public var isLocalOnly: Bool { persistence.isLocalOnly }
+
     /// Bestehender Share einer Reise, falls sie bereits geteilt wurde.
     public func existingShare(for trip: Trip) -> CKShare? {
-        try? container.fetchShares(matching: [trip.objectID])[trip.objectID]
+        guard !isLocalOnly else { return nil }
+        return try? container.fetchShares(matching: [trip.objectID])[trip.objectID]
     }
 
     public func isShared(_ trip: Trip) -> Bool {
-        existingShare(for: trip) != nil || persistence.isInSharedStore(trip)
+        guard !isLocalOnly else { return false }
+        return existingShare(for: trip) != nil || persistence.isInSharedStore(trip)
     }
 
     /// Bin ich Eigentümer der Reise (habe ich sie erstellt) oder Teilnehmer?
@@ -60,7 +65,8 @@ public final class SharingController: ObservableObject {
 
     /// Darf dieses Gerät die Reise bearbeiten? (Bei `.readOnly`-Shares nein.)
     public func canEdit(_ trip: Trip) -> Bool {
-        container.canUpdateRecord(forManagedObjectWith: trip.objectID)
+        guard !isLocalOnly else { return true }
+        return container.canUpdateRecord(forManagedObjectWith: trip.objectID)
     }
 
     /// Anzeigenamen der Teilnehmer – für die Sharing-Karte in den Reise-Einstellungen.
@@ -80,8 +86,10 @@ public final class SharingController: ObservableObject {
     }
 
     /// Ist der iCloud-Account auf diesem Gerät überhaupt bereit?
+    /// Im Lokalmodus wird gar nicht erst gefragt.
     public func accountStatus() async -> CKAccountStatus {
-        (try? await CKContainer(identifier: PersistenceController.cloudKitContainerID).accountStatus()) ?? .couldNotDetermine
+        guard !isLocalOnly else { return .couldNotDetermine }
+        return (try? await CKContainer(identifier: PersistenceController.cloudKitContainerID).accountStatus()) ?? .couldNotDetermine
     }
 
     // MARK: - Einladen
@@ -91,6 +99,7 @@ public final class SharingController: ObservableObject {
     /// Wichtig: Vor dem Teilen müssen alle Änderungen gespeichert sein, sonst
     /// wandern noch nicht gesicherte Ausgaben nicht in die geteilte Zone.
     public func makeShare(for trip: Trip) async throws -> (share: CKShare, container: CKContainer) {
+        guard !isLocalOnly else { throw SharingError.localModeActive }
         persistence.save()
 
         if let existing = existingShare(for: trip) {
@@ -126,6 +135,10 @@ public final class SharingController: ObservableObject {
 
     /// Nimmt eine eingehende iCloud-Einladung an und legt die Reise im **shared Store** ab.
     public func accept(_ metadata: CKShare.Metadata) {
+        guard !isLocalOnly else {
+            lastError = L.sharingLocalMode
+            return
+        }
         guard let sharedStore = persistence.sharedStore else {
             lastError = L.sharingNoSharedStore
             return
@@ -167,10 +180,13 @@ public final class SharingController: ObservableObject {
 
 public enum SharingError: LocalizedError {
     case shareUnavailable
+    /// Die App läuft im Lokalmodus – Teilen ist nicht möglich.
+    case localModeActive
 
     public var errorDescription: String? {
         switch self {
         case .shareUnavailable: return L.sharingCreateFailed
+        case .localModeActive: return L.sharingLocalMode
         }
     }
 }

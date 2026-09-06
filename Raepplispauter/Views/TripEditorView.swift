@@ -162,61 +162,83 @@ struct TripEditorView: View {
     @ViewBuilder
     private var sharingSection: some View {
         if let trip {
-            let controller = SharingController.shared
-            let isShared = controller.isShared(trip)
-            let isOwner = controller.isOwner(of: trip)
-
-            Section {
-                if isShared {
-                    let participants = controller.participantNames(for: trip)
-                    if !participants.isEmpty {
-                        LabeledContent(L.sharingSharedWith) {
-                            VStack(alignment: .trailing, spacing: 2) {
-                                ForEach(participants, id: \.self) { participant in
-                                    Text(participant)
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                    } else {
-                        LabeledContent(L.sharingSection) { Text(L.sharingShared) }
-                    }
-                } else {
-                    LabeledContent(L.sharingSection) { Text(L.sharingNotShared) }
-                }
-
-                if isOwner {
-                    Button {
-                        Task { await prepareShare(for: trip) }
-                    } label: {
-                        HStack {
-                            Label(isShared ? L.sharingManage : L.sharingInvite,
-                                  systemImage: isShared ? "person.2.badge.gearshape" : "person.crop.circle.badge.plus")
-                            if isPreparingShare {
-                                Spacer()
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(isPreparingShare)
-
-                    if isShared {
-                        Button(role: .destructive) {
-                            Task { await SharingController.shared.stopSharing(trip) }
-                        } label: {
-                            Label(L.sharingStop, systemImage: "person.2.slash")
-                        }
-                    }
-                } else {
-                    Label(L.sharingParticipant, systemImage: "person.crop.circle.badge.checkmark")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-            } header: {
-                Text(L.sharingSection)
-            } footer: {
-                Text(isOwner ? L.sharingHint : L.sharingOnlyOwner)
+            if SharingController.shared.isLocalOnly {
+                localModeSection
+            } else {
+                cloudSharingSection(for: trip)
             }
+        }
+    }
+
+    /// Lokalmodus: Teilen ist konstruktiv nicht möglich. Statt eines toten
+    /// Knopfes gibt es eine ehrliche Erklärung, wie man umschaltet.
+    private var localModeSection: some View {
+        Section {
+            Label(L.syncModeLocal, systemImage: "iphone.slash")
+                .foregroundStyle(Theme.textSecondary)
+        } header: {
+            Text(L.sharingSection)
+        } footer: {
+            Text(L.syncModeLocalHint)
+        }
+    }
+
+    @ViewBuilder
+    private func cloudSharingSection(for trip: Trip) -> some View {
+        let controller = SharingController.shared
+        let isShared = controller.isShared(trip)
+        let isOwner = controller.isOwner(of: trip)
+
+        Section {
+            if isShared {
+                let participants = controller.participantNames(for: trip)
+                if !participants.isEmpty {
+                    LabeledContent(L.sharingSharedWith) {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            ForEach(participants, id: \.self) { participant in
+                                Text(participant)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                } else {
+                    LabeledContent(L.sharingSection) { Text(L.sharingShared) }
+                }
+            } else {
+                LabeledContent(L.sharingSection) { Text(L.sharingNotShared) }
+            }
+
+            if isOwner {
+                Button {
+                    Task { await prepareShare(for: trip) }
+                } label: {
+                    HStack {
+                        Label(isShared ? L.sharingManage : L.sharingInvite,
+                              systemImage: isShared ? "person.2.badge.gearshape" : "person.crop.circle.badge.plus")
+                        if isPreparingShare {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isPreparingShare)
+
+                if isShared {
+                    Button(role: .destructive) {
+                        Task { await SharingController.shared.stopSharing(trip) }
+                    } label: {
+                        Label(L.sharingStop, systemImage: "person.2.slash")
+                    }
+                }
+            } else {
+                Label(L.sharingParticipant, systemImage: "person.crop.circle.badge.checkmark")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        } header: {
+            Text(L.sharingSection)
+        } footer: {
+            Text(isOwner ? L.sharingHint : L.sharingOnlyOwner)
         }
     }
 
