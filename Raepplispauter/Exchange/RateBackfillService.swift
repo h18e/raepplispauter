@@ -17,11 +17,14 @@ public enum RateBackfillService {
         _ = try? await service.refreshRates()
 
         // 2. Betroffene Ausgaben laden.
-        let request = Expense.fetchRequest()
-        request.predicate = NSPredicate(format: "isRateProvisional == YES")
-
+        //
+        // Der Fetch-Request wird bewusst *innerhalb* von `perform` gebaut:
+        // `NSFetchRequest` ist nicht `Sendable` und dürfte deshalb nicht von
+        // aussen in die Closure hineingereicht werden.
         let candidates: [(objectID: NSManagedObjectID, amount: Decimal, currency: String, tripCurrency: String, date: Date)] =
             await context.perform {
+                let request = Expense.fetchRequest()
+                request.predicate = NSPredicate(format: "isRateProvisional == YES")
                 let expenses = (try? context.fetch(request)) ?? []
                 return expenses.map {
                     ($0.objectID,

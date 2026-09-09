@@ -106,6 +106,11 @@ public final class SharingController: ObservableObject {
             return (existing, CKContainer(identifier: PersistenceController.cloudKitContainerID))
         }
 
+        // Den Titel vorher auslesen: `Trip` ist ein NSManagedObject und damit
+        // nicht `Sendable` – in der Completion-Closure darf es deshalb nicht
+        // verwendet werden. Der reine String ist unbedenklich.
+        let shareTitle = trip.displayName
+
         return try await withCheckedThrowingContinuation { continuation in
             container.share([trip], to: nil) { _, share, ckContainer, error in
                 if let error {
@@ -117,7 +122,7 @@ public final class SharingController: ObservableObject {
                     return
                 }
                 // Titel der Einladung, wie er in Nachrichten/Mail erscheint.
-                share[CKShare.SystemFieldKey.title] = trip.displayName as CKRecordValue
+                share[CKShare.SystemFieldKey.title] = shareTitle as CKRecordValue
                 share.publicPermission = .none      // nur eingeladene Personen
                 continuation.resume(returning: (share, ckContainer))
             }
