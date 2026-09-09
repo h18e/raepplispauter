@@ -2,8 +2,12 @@
 build/
 DerivedData/
 *.xcuserstate
-*.xcworkspace/xcuserdata/
 xcuserdata/
+
+# Wird von Xcode beim Öffnen des Projekts automatisch erzeugt und gehört
+# niemandem ausser dem lokalen Rechner.
+*.xcodeproj/project.xcworkspace/
+*.xcworkspace/xcuserdata/
 *.moved-aside
 *.hmap
 *.ipa
