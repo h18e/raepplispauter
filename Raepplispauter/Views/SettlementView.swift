@@ -2,8 +2,8 @@ import CoreData
 import SwiftUI
 import UIKit
 
-/// Schlussabrechnung am Reiseende: wer schuldet wem wie viel, Detailzahlen und
-/// CSV-Export über die iOS-Freigabefunktion.
+/// Schlussabrechnung am Reiseende: wer zahlt wem wie viel, Detailzahlen je Person
+/// und CSV-Export über die iOS-Freigabefunktion.
 struct SettlementView: View {
 
     @ObservedObject var trip: Trip
@@ -14,6 +14,7 @@ struct SettlementView: View {
 
     @State private var exportFile: ExportFile?
     @State private var errorMessage: String?
+    @State private var showCloseConfirmation = false
 
     init(trip: Trip) {
         _trip = ObservedObject(wrappedValue: trip)
@@ -33,9 +34,11 @@ struct SettlementView: View {
 
     private var report: TripReport {
         SettlementCalculator.report(snapshots: snapshots,
-                                    tripCurrency: trip.currency,
-                                    costSharePercentA: trip.costSharePercentADecimal)
+                                    participants: trip.participantSnapshots,
+                                    tripCurrency: trip.currency)
     }
+
+    private var showsCHF: Bool { trip.currency.uppercased() != Currencies.home }
 
     var body: some View {
         ScrollView {
@@ -65,6 +68,12 @@ struct SettlementView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .confirmationDialog(L.settlementCloseConfirm,
+                            isPresented: $showCloseConfirmation,
+                            titleVisibility: .visible) {
+            Button(L.settlementCloseTrip) { setClosed(true) }
+            Button(L.cancel, role: .cancel) {}
+        }
     }
 
     // MARK: - Bausteine
@@ -83,21 +92,14 @@ struct SettlementView: View {
                         .font(.headline)
                 }
             } else {
-                let settlement = report.settlementTrip
-                let debtorName = trip.name(for: settlement.debtor ?? .b)
-                let creditorName = trip.name(for: settlement.creditor ?? .a)
-
-                Text(L.balanceOwesShort(debtorName, creditorName))
-                    .font(.headline)
-                Text(Money.format(settlement.amount, currencyCode: settlement.currencyCode))
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.accent)
-                    .monospacedDigit()
-                if trip.currency.uppercased() != Currencies.home {
-                    Text(Money.format(report.settlementCHF.amount, currencyCode: Currencies.home))
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .monospacedDigit()
+                ForEach(Array(report.settlementTrip.transfers.enumerated()), id: \.element.id) { index, transfer in
+                    TransferRow(transfer: transfer,
+                                chfAmount: matchingCHFAmount(for: transfer, in: report),
+                                showCHF: showsCHF,
+                                emphasised: index == 0)
+                    if transfer.id != report.settlementTrip.transfers.last?.id {
+                        Divider().overlay(Theme.separator)
+                    }
                 }
             }
 
@@ -108,6 +110,12 @@ struct SettlementView: View {
             }
         }
         .card()
+    }
+
+    private func matchingCHFAmount(for transfer: Transfer, in report: TripReport) -> Decimal? {
+        report.settlementCHF.transfers
+            .first { $0.from.id == transfer.from.id && $0.to.id == transfer.to.id }?
+            .amount
     }
 
     @ViewBuilder
@@ -121,30 +129,41 @@ struct SettlementView: View {
                       emphasised: true)
             Divider().overlay(Theme.separator)
 
-            detailRow(L.csvRowPaid(trip.nameA),
-                      tripValue: report.tripBalance.a.paid,
-                      chfValue: report.chfBalance.a.paid)
-            detailRow(L.csvRowPaid(trip.nameB),
-                      tripValue: report.tripBalance.b.paid,
-                      chfValue: report.chfBalance.b.paid)
-            Divider().overlay(Theme.separator)
+            ForEach(report.tripBalance.balances) { balance in
+                let chf = report.chfBalance.balance(for: balance.id)
 
-            detailRow(L.csvRowShare(trip.nameA),
-                      tripValue: report.tripBalance.a.share,
-                      chfValue: report.chfBalance.a.share)
-            detailRow(L.csvRowShare(trip.nameB),
-                      tripValue: report.tripBalance.b.share,
-                      chfValue: report.chfBalance.b.share)
-            Divider().overlay(Theme.separator)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Theme.participantColor(balance.participant.colorIndex))
+                            .frame(width: 8, height: 8)
+                        Text(balance.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Text("\(Money.formatPlain(balance.participant.costSharePercent, fractionDigits: 1)) %")
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textTertiary)
+                    }
 
-            detailRow(L.csvRowNet(trip.nameA),
-                      tripValue: report.tripBalance.a.net,
-                      chfValue: report.chfBalance.a.net,
-                      colorise: true)
-            detailRow(L.csvRowNet(trip.nameB),
-                      tripValue: report.tripBalance.b.net,
-                      chfValue: report.chfBalance.b.net,
-                      colorise: true)
+                    detailRow(L.balancePaid,
+                              tripValue: balance.paid,
+                              chfValue: chf?.paid ?? 0)
+                    detailRow(L.balanceShare,
+                              tripValue: balance.share,
+                              chfValue: chf?.share ?? 0)
+                    detailRow(L.balanceNet,
+                              tripValue: balance.net,
+                              chfValue: chf?.net ?? 0,
+                              colorise: true)
+                }
+                .padding(.vertical, 4)
+
+                if balance.id != report.tripBalance.balances.last?.id {
+                    Divider().overlay(Theme.separator)
+                }
+            }
         }
         .card()
     }
@@ -181,8 +200,11 @@ struct SettlementView: View {
             .disabled(expenses.isEmpty)
 
             Button {
-                trip.isClosed.toggle()
-                PersistenceController.shared.save()
+                if trip.isClosed {
+                    setClosed(false)
+                } else {
+                    showCloseConfirmation = true
+                }
             } label: {
                 Label(trip.isClosed ? L.settlementReopenTrip : L.settlementCloseTrip,
                       systemImage: trip.isClosed ? "lock.open" : "lock")
@@ -193,15 +215,18 @@ struct SettlementView: View {
         .card()
     }
 
-    // MARK: - Export
+    // MARK: - Aktionen
+
+    private func setClosed(_ closed: Bool) {
+        trip.isClosed = closed
+        PersistenceController.shared.save()
+    }
 
     private func exportCSV() {
         let result = CSVExporter.makeCSV(tripName: trip.displayName,
                                          tripCurrency: trip.currency,
                                          startDate: trip.startDate,
                                          endDate: trip.endDate,
-                                         nameA: trip.nameA,
-                                         nameB: trip.nameB,
                                          snapshots: snapshots,
                                          report: report)
         do {
@@ -223,16 +248,4 @@ struct ActivityView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-#Preview {
-    let controller = PersistenceController.preview
-    let trip = (try? controller.viewContext.fetch(Trip.fetchRequest()))?.first
-    return NavigationStack {
-        if let trip {
-            SettlementView(trip: trip)
-        }
-    }
-    .environment(\.managedObjectContext, controller.viewContext)
-    .preferredColorScheme(.dark)
 }

@@ -111,9 +111,12 @@ struct TripListView: View {
                         Text(CSVExporter.formatDateRange(trip.startDate, trip.endDate))
                         Text("·")
                         Text(trip.currency)
+                        Text("·")
+                        Text(L.tripParticipantCount(trip.participantList.count))
                     }
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
                 }
 
                 Spacer(minLength: 8)

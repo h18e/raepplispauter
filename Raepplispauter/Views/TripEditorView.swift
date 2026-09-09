@@ -2,7 +2,8 @@ import CloudKit
 import CoreData
 import SwiftUI
 
-/// Reise anlegen bzw. bearbeiten – inklusive der iCloud-Freigabe an den Partner.
+/// Reise anlegen bzw. bearbeiten – inklusive Personen, Kostenschlüssel und der
+/// iCloud-Freigabe an die Mitreisenden.
 struct TripEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -16,10 +17,8 @@ struct TripEditorView: View {
     @State private var startDate: Date
     @State private var endDate: Date
     @State private var currencyCode: String
-    @State private var personAName: String
-    @State private var personBName: String
-    @State private var costSharePercentA: Double
     @State private var isClosed: Bool
+    @State private var drafts: [ParticipantDraft]
 
     @State private var shareTarget: ShareTarget?
     @State private var isPreparingShare = false
@@ -31,10 +30,41 @@ struct TripEditorView: View {
         _startDate = State(initialValue: trip?.startDate ?? Date())
         _endDate = State(initialValue: trip?.endDate ?? Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date())
         _currencyCode = State(initialValue: trip?.currencyCode ?? "EUR")
-        _personAName = State(initialValue: trip?.nameA ?? Person.defaultNameA)
-        _personBName = State(initialValue: trip?.nameB ?? Person.defaultNameB)
-        _costSharePercentA = State(initialValue: trip?.costSharePercentA ?? 50)
         _isClosed = State(initialValue: trip?.isClosed ?? false)
+
+        if let trip, !trip.participantList.isEmpty {
+            _drafts = State(initialValue: trip.participantList.map(ParticipantDraft.init(participant:)))
+        } else {
+            // Neue Reise: eine leere Zeile als Startpunkt, weitere per "+".
+            _drafts = State(initialValue: [ParticipantDraft(name: "", costSharePercent: 100)])
+        }
+    }
+
+    /// Bearbeitbare Person – funktioniert auch, solange die Reise noch gar nicht
+    /// gespeichert ist.
+    private struct ParticipantDraft: Identifiable {
+        let id: UUID
+        var name: String
+        var costSharePercent: Double
+        var colorIndex: Int
+        /// Vorhandener Datensatz, falls die Person schon gespeichert ist.
+        var existing: Participant?
+
+        init(name: String, costSharePercent: Double, colorIndex: Int = 0) {
+            self.id = UUID()
+            self.name = name
+            self.costSharePercent = costSharePercent
+            self.colorIndex = colorIndex
+            self.existing = nil
+        }
+
+        init(participant: Participant) {
+            self.id = participant.id ?? UUID()
+            self.name = participant.displayName
+            self.costSharePercent = participant.costSharePercent
+            self.colorIndex = Int(participant.colorIndex)
+            self.existing = participant
+        }
     }
 
     private struct ShareTarget: Identifiable {
@@ -46,17 +76,54 @@ struct TripEditorView: View {
 
     private var isNew: Bool { trip == nil }
 
+    /// Bei abgeschlossener Reise bleiben die Inhalte gesperrt, damit die
+    /// Abrechnung stabil bleibt. Nur der Status selbst ist umschaltbar.
+    private var contentEditable: Bool { !isClosed }
+
+    private var snapshots: [ParticipantSnapshot] {
+        drafts.enumerated().map { index, draft in
+            ParticipantSnapshot(id: draft.id,
+                                name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? L.participantPlaceholderNumbered(index + 1)
+                                    : draft.name,
+                                costSharePercent: Decimal(draft.costSharePercent),
+                                colorIndex: draft.colorIndex,
+                                sortIndex: index)
+        }
+    }
+
+    private var percentages: Binding<[Double]> {
+        Binding(
+            get: { drafts.map(\.costSharePercent) },
+            set: { values in
+                for (index, value) in values.enumerated() where drafts.indices.contains(index) {
+                    drafts[index].costSharePercent = value
+                }
+            }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
+                if isClosed {
+                    Section {
+                        Label(L.settlementClosedNotice, systemImage: "lock.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.warning)
+                    }
+                }
+
                 Section(L.tripName) {
                     TextField(L.tripNamePlaceholder, text: $name)
+                        .disabled(!contentEditable)
                 }
 
                 Section(L.tripPeriod) {
                     DatePicker(L.tripStart, selection: $startDate, displayedComponents: .date)
                     DatePicker(L.tripEnd, selection: $endDate, in: startDate..., displayedComponents: .date)
                 }
+                .disabled(!contentEditable)
 
                 Section(L.tripCurrency) {
                     Picker(L.tripCurrency, selection: $currencyCode) {
@@ -66,25 +133,35 @@ struct TripEditorView: View {
                     }
                     .pickerStyle(.navigationLink)
                 }
+                .disabled(!contentEditable)
 
-                Section(L.tripPeople) {
-                    LabeledContent(L.tripPersonA) {
-                        TextField(Person.defaultNameA, text: $personAName)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent(L.tripPersonB) {
-                        TextField(Person.defaultNameB, text: $personBName)
-                            .multilineTextAlignment(.trailing)
+                participantsSection
+                costShareSection
+
+                if let trip, !isNew {
+                    Section {
+                        NavigationLink {
+                            CategoryEditorView(trip: trip)
+                        } label: {
+                            LabeledContent {
+                                Text("\(trip.categoryList.count)")
+                                    .foregroundStyle(Theme.textSecondary)
+                            } label: {
+                                Label(L.categoriesTitle, systemImage: "tag")
+                            }
+                        }
+                    } footer: {
+                        Text(L.categoriesHint)
                     }
                 }
-
-                costShareSection
 
                 if !isNew {
                     sharingSection
 
                     Section {
                         Toggle(L.tripStatusClosed, isOn: $isClosed)
+                    } footer: {
+                        Text(L.tripClosedHint)
                     }
                 }
             }
@@ -98,7 +175,7 @@ struct TripEditorView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.save) { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(!canSave)
                 }
             }
             .sheet(item: $shareTarget) { target in
@@ -124,37 +201,103 @@ struct TripEditorView: View {
         }
     }
 
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && drafts.contains { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    // MARK: - Personen
+
+    private var participantsSection: some View {
+        Section {
+            ForEach($drafts) { $draft in
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(Theme.participantColor(draft.colorIndex))
+                        .frame(width: 10, height: 10)
+                    TextField(L.participantNamePlaceholder, text: $draft.name)
+                        .textInputAutocapitalization(.words)
+                        .disabled(!contentEditable)
+                }
+            }
+            .onDelete { offsets in
+                guard contentEditable else { return }
+                deleteParticipants(at: offsets)
+            }
+
+            if contentEditable {
+                Button {
+                    addParticipant()
+                } label: {
+                    Label(L.participantAdd, systemImage: "person.badge.plus")
+                }
+            }
+        } header: {
+            Text(L.tripPeople)
+        } footer: {
+            Text(L.tripPeopleHint)
+        }
+    }
+
+    private func addParticipant() {
+        withAnimation {
+            var draft = ParticipantDraft(name: "", costSharePercent: 0)
+            draft.colorIndex = drafts.count % Theme.participantPaletteSize
+            drafts.append(draft)
+
+            // Neue Person bekommt ihren gleichmässigen Anteil, die übrigen werden
+            // proportional gestaucht – die Summe bleibt 100 %.
+            let values = SplitCalculator.distributeAfterInsert(drafts.map(\.costSharePercent))
+            for (index, value) in values.enumerated() where drafts.indices.contains(index) {
+                drafts[index].costSharePercent = value
+            }
+        }
+    }
+
+    private func deleteParticipants(at offsets: IndexSet) {
+        // Personen mit bereits erfassten Ausgaben dürfen nicht verschwinden,
+        // sonst verlöre man die Zuordnung dieser Ausgaben.
+        let blocked = offsets.compactMap { drafts.indices.contains($0) ? drafts[$0] : nil }
+            .filter { $0.existing?.isUsed == true }
+
+        guard blocked.isEmpty else {
+            errorMessage = L.participantDeleteBlocked(blocked.map(\.name).joined(separator: ", "))
+            return
+        }
+
+        guard drafts.count - offsets.count >= 1 else {
+            errorMessage = L.participantNeedsOne
+            return
+        }
+
+        withAnimation {
+            drafts.remove(atOffsets: offsets)
+            let values = SplitCalculator.normalise(drafts.map(\.costSharePercent))
+            for (index, value) in values.enumerated() where drafts.indices.contains(index) {
+                drafts[index].costSharePercent = value
+            }
+        }
+    }
+
     // MARK: - Kostenschlüssel
 
     private var costShareSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("\(displayNameA) \(Int(costSharePercentA)) %")
-                        .foregroundStyle(Theme.personColor(.a))
-                    Spacer()
-                    Text("\(displayNameB) \(Int(100 - costSharePercentA)) %")
-                        .foregroundStyle(Theme.personColor(.b))
-                }
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-
-                Slider(value: $costSharePercentA, in: 0...100, step: 5)
+            if drafts.count < 2 {
+                Text(L.tripCostShareSingle)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textTertiary)
+            } else {
+                SplitEditorView(participants: snapshots,
+                                percentages: percentages,
+                                isEnabled: contentEditable)
+                    .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
         } header: {
             Text(L.tripCostShare)
         } footer: {
             Text(L.tripCostShareHint)
         }
-    }
-
-    private var displayNameA: String {
-        personAName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Person.defaultNameA : personAName
-    }
-
-    private var displayNameB: String {
-        personBName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Person.defaultNameB : personBName
     }
 
     // MARK: - Teile (CloudKit)
@@ -265,6 +408,19 @@ struct TripEditorView: View {
             return
         }
 
+        // Leere Namenszeilen fallen lautlos weg – sie sind nur unfertige Eingaben.
+        var effective = drafts.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        guard !effective.isEmpty else {
+            errorMessage = L.participantNeedsOne
+            return
+        }
+
+        // Kostenschlüssel nach dem Wegfallen leerer Zeilen erneut auf 100 % bringen.
+        let normalised = SplitCalculator.normalise(effective.map(\.costSharePercent))
+        for (index, value) in normalised.enumerated() where effective.indices.contains(index) {
+            effective[index].costSharePercent = value
+        }
+
         let target: Trip
         if let trip {
             target = trip
@@ -281,10 +437,31 @@ struct TripEditorView: View {
         target.startDate = startDate
         target.endDate = endDate
         target.currencyCode = currencyCode
-        target.personAName = displayNameA
-        target.personBName = displayNameB
-        target.costSharePercentA = costSharePercentA
         target.isClosed = isClosed
+
+        // Entfernte Personen löschen (nur unbenutzte kommen hier überhaupt an).
+        let keptIDs = Set(effective.compactMap { $0.existing?.objectID })
+        for participant in target.participantList where !keptIDs.contains(participant.objectID) {
+            context.delete(participant)
+        }
+
+        // Bestehende aktualisieren, neue anlegen.
+        for (index, draft) in effective.enumerated() {
+            let cleanName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let existing = draft.existing {
+                existing.name = cleanName
+                existing.costSharePercent = draft.costSharePercent
+                existing.sortIndex = Int16(index)
+                existing.colorIndex = Int16(draft.colorIndex % Theme.participantPaletteSize)
+            } else {
+                let created = Participant.create(in: context,
+                                                 trip: target,
+                                                 name: cleanName,
+                                                 costSharePercent: draft.costSharePercent)
+                created.sortIndex = Int16(index)
+                created.colorIndex = Int16(draft.colorIndex % Theme.participantPaletteSize)
+            }
+        }
 
         PersistenceController.shared.save()
 

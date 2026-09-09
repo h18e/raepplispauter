@@ -76,6 +76,29 @@ struct BadgeView: View {
     }
 }
 
+/// Personen-Marke mit Farbpunkt.
+struct ParticipantChip: View {
+    let participant: ParticipantSnapshot
+    var trailingText: String?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(Theme.participantColor(participant.colorIndex))
+                .frame(width: 7, height: 7)
+            Text(participant.name)
+                .lineLimit(1)
+            if let trailingText {
+                Text(trailingText)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(Theme.textSecondary)
+    }
+}
+
 /// Zeile mit Beschriftung links und Wert rechts.
 struct LabeledValueRow<Value: View>: View {
     let label: String
@@ -147,6 +170,7 @@ struct BarRow: View {
                 Text(title)
                     .font(.subheadline)
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(primaryText)
@@ -180,40 +204,39 @@ struct BarRow: View {
 struct ExpenseRow: View {
     let snapshot: ExpenseSnapshot
     let tripCurrency: String
-    let nameA: String
-    let nameB: String
+    let participants: [ParticipantSnapshot]
 
-    private var payerName: String {
-        switch snapshot.payer {
-        case .a: return nameA
-        case .b: return nameB
-        case .shared: return L.payerShared
+    private var payerText: String {
+        if let singleID = snapshot.singlePayerID {
+            return participants.first { $0.id == singleID }?.name ?? L.participantUnnamed
         }
+        let names = participants
+            .filter { (snapshot.paymentPercentages[$0.id] ?? 0) > 0 }
+            .map(\.name)
+        return names.isEmpty ? L.payerShared : names.joined(separator: " + ")
     }
 
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Theme.categoryColor(snapshot.category).opacity(0.18))
-                Image(systemName: snapshot.category.symbolName)
+                    .fill(Theme.categoryColor(snapshot.categoryColorIndex).opacity(0.18))
+                Image(systemName: snapshot.categorySymbol)
                     .font(.footnote)
-                    .foregroundStyle(Theme.categoryColor(snapshot.category))
+                    .foregroundStyle(Theme.categoryColor(snapshot.categoryColorIndex))
             }
             .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(snapshot.note.isEmpty ? snapshot.category.displayName : snapshot.note)
+                Text(snapshot.note.isEmpty ? snapshot.categoryName : snapshot.note)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     Text(Formatters.dateOnly.string(from: snapshot.date))
                     Text("·")
-                    Text(payerName)
-                    if snapshot.payer == .shared {
-                        Text("(\(Money.formatPlain(snapshot.splitPercentA, fractionDigits: 0))/\(Money.formatPlain(100 - snapshot.splitPercentA, fractionDigits: 0)))")
-                    }
+                    Text(payerText)
+                        .lineLimit(1)
                     if snapshot.isRateProvisional {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Theme.warning)

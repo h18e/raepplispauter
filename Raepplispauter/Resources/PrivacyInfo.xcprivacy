@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Privacy Manifest – seit Frühjahr 2024 Pflicht für App-Store-Einreichungen.
+
+		Inhaltlich ist die Lage bei dieser App einfach:
+		* Es wird nichts getrackt und nichts an Dritte gegeben.
+		* Es gibt keinen eigenen Server. Alle Reisedaten liegen in Core Data auf
+		  dem Gerät und – sofern aktiviert – in der *privaten* iCloud-Datenbank
+		  des Nutzers. Dorthin hat der Entwickler keinen Zugriff.
+		* Nach aussen geht ausschliesslich ein anonymer Abruf der öffentlichen
+		  Wechselkurse der Europäischen Zentralbank (ohne Parameter, ohne Kennung).
+	-->
+
+	<!-- Kein Tracking im Sinne der App Tracking Transparency. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- Es werden keine Daten erhoben, die die App verlassen. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<!-- APIs, deren Nutzung Apple begründet haben will. -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!-- UserDefaults: nur eigene Bedienvorlieben (Kursaufschlag,
+			     zuletzt gewählte Reise, Gerätename fürs Protokoll). -->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Dateizeitstempel: Core-Data-Store und der lokale Kurs-Cache im
+			     Container der App. -->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

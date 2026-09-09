@@ -2,11 +2,12 @@ import Foundation
 
 /// Erzeugt den CSV-Export einer Reise für die iOS-Freigabefunktion.
 ///
-/// Aufbau der Datei (drei Blöcke, durch Leerzeilen getrennt):
+/// Aufbau der Datei (vier Blöcke, durch Leerzeilen getrennt):
 /// 1. **Einzeltransaktionen** – jede Ausgabe mit Original-, Reise- und CHF-Betrag,
-///    Kurs, Kursdatum und Kursquelle
+///    Kurs, Kursdatum, Kursquelle sowie einer Spalte je Person mit deren Auslage
 /// 2. **Kategorie-Summen**
-/// 3. **Schlusssaldo** – Auslagen, Kostenanteile und die Schuldbeziehung
+/// 3. **Bilanz je Person** – Auslage, Kostenanteil, Saldo
+/// 4. **Schlussabrechnung** – wer zahlt wem wie viel
 ///
 /// Trennzeichen ist das Semikolon (Excel de-CH öffnet die Datei damit direkt),
 /// Zahlen verwenden den Punkt als Dezimaltrennzeichen. Ein UTF-8-BOM stellt
@@ -24,38 +25,41 @@ public enum CSVExporter {
                                tripCurrency: String,
                                startDate: Date?,
                                endDate: Date?,
-                               nameA: String,
-                               nameB: String,
                                snapshots: [ExpenseSnapshot],
                                report: TripReport) -> ExportResult {
         var lines: [String] = []
+        let participants = report.participants
 
         // --- Kopf ---------------------------------------------------------
         lines.append(row([L.csvHeaderTrip, tripName]))
         lines.append(row([L.csvHeaderPeriod, formatDateRange(startDate, endDate)]))
         lines.append(row([L.csvHeaderCurrency, tripCurrency]))
+        lines.append(row([L.csvHeaderParticipants,
+                          participants.map(\.name).joined(separator: ", ")]))
         lines.append(row([L.csvHeaderExported, Formatters.dateTime.string(from: Date())]))
         lines.append("")
 
         // --- Block 1: Einzeltransaktionen ---------------------------------
         lines.append(row([L.csvSectionTransactions]))
-        lines.append(row([
+        var header = [
             L.csvColDate, L.csvColTime, L.csvColCategory, L.csvColPurpose,
-            L.csvColPayer, L.csvColSplitA,
+            L.csvColPayer,
             L.csvColAmount, L.csvColCurrency,
             L.csvColAmountTrip(tripCurrency),
             L.csvColRate, L.csvColAmountCHF,
             L.csvColRateDate, L.csvColRateSource
-        ]))
+        ]
+        // Eine Spalte je Person: wie viel hat sie an dieser Ausgabe ausgelegt?
+        header.append(contentsOf: participants.map { L.csvColPaidBy($0.name) })
+        lines.append(row(header))
 
         for snapshot in snapshots.sorted(by: { $0.date < $1.date }) {
-            lines.append(row([
+            var fields = [
                 Formatters.dateOnly.string(from: snapshot.date),
                 Formatters.timeOnly.string(from: snapshot.date),
-                snapshot.category.displayName,
+                snapshot.categoryName,
                 snapshot.note,
-                payerLabel(snapshot.payer, nameA: nameA, nameB: nameB),
-                snapshot.payer == .shared ? Money.csvNumber(snapshot.splitPercentA, fractionDigits: 0) : "",
+                payerLabel(snapshot, participants: participants),
                 Money.csvNumber(snapshot.amountOriginal),
                 snapshot.currencyCode,
                 Money.csvNumber(snapshot.amountTrip),
@@ -63,58 +67,75 @@ public enum CSVExporter {
                 snapshot.amountCHF.map { Money.csvNumber($0) } ?? "",
                 snapshot.rateDate.map { Formatters.dateOnly.string(from: $0) } ?? "",
                 snapshot.rateSource.displayName
-            ]))
+            ]
+            let paid = snapshot.paidAmounts(total: snapshot.amountTrip)
+            for participant in participants {
+                let amount = paid[participant.id] ?? 0
+                fields.append(amount > 0 ? Money.csvNumber(Money.round(amount, scale: 2)) : "")
+            }
+            lines.append(row(fields))
         }
         lines.append("")
 
         // --- Block 2: Kategorie-Summen ------------------------------------
         lines.append(row([L.csvSectionCategories]))
-        lines.append(row([
-            L.csvColCategory, L.csvColCount,
-            L.csvColAmountTrip(tripCurrency), L.csvColAmountCHF,
-            L.csvColPaidBy(nameA), L.csvColPaidBy(nameB)
-        ]))
+        lines.append(row([L.csvColCategory, L.csvColCount,
+                          L.csvColAmountTrip(tripCurrency), L.csvColAmountCHF]))
         for category in report.categories {
             lines.append(row([
-                category.category.displayName,
+                category.name,
                 String(category.count),
                 Money.csvNumber(category.totalTrip),
-                Money.csvNumber(category.totalCHF),
-                Money.csvNumber(category.paidATrip),
-                Money.csvNumber(category.paidBTrip)
+                Money.csvNumber(category.totalCHF)
             ]))
         }
-        lines.append(row([
-            L.csvTotal,
-            String(report.expenseCount),
-            Money.csvNumber(report.tripBalance.total),
-            Money.csvNumber(report.chfBalance.total),
-            Money.csvNumber(report.tripBalance.a.paid),
-            Money.csvNumber(report.tripBalance.b.paid)
-        ]))
+        lines.append(row([L.csvTotal,
+                          String(report.expenseCount),
+                          Money.csvNumber(report.tripBalance.total),
+                          Money.csvNumber(report.chfBalance.total)]))
         lines.append("")
 
-        // --- Block 3: Schlusssaldo ----------------------------------------
+        // --- Block 3: Bilanz je Person ------------------------------------
+        lines.append(row([L.csvSectionBalance]))
+        lines.append(row([
+            L.csvColPerson, L.csvColCostShare,
+            L.csvColPaidTrip(tripCurrency), L.csvColShareTrip(tripCurrency), L.csvColNetTrip(tripCurrency),
+            L.csvColPaidCHF, L.csvColShareCHF, L.csvColNetCHF
+        ]))
+        for participant in participants {
+            let trip = report.tripBalance.balance(for: participant.id)
+            let chf = report.chfBalance.balance(for: participant.id)
+            lines.append(row([
+                participant.name,
+                Money.csvNumber(participant.costSharePercent, fractionDigits: 1),
+                Money.csvNumber(trip?.paid ?? 0),
+                Money.csvNumber(trip?.share ?? 0),
+                Money.csvNumber(trip?.net ?? 0),
+                Money.csvNumber(chf?.paid ?? 0),
+                Money.csvNumber(chf?.share ?? 0),
+                Money.csvNumber(chf?.net ?? 0)
+            ]))
+        }
+        lines.append("")
+
+        // --- Block 4: Schlussabrechnung -----------------------------------
         lines.append(row([L.csvSectionSettlement]))
-        lines.append(row([L.csvColItem, tripCurrency, Currencies.home]))
-        lines.append(row([L.csvRowPaid(nameA),
-                          Money.csvNumber(report.tripBalance.a.paid),
-                          Money.csvNumber(report.chfBalance.a.paid)]))
-        lines.append(row([L.csvRowPaid(nameB),
-                          Money.csvNumber(report.tripBalance.b.paid),
-                          Money.csvNumber(report.chfBalance.b.paid)]))
-        lines.append(row([L.csvRowShare(nameA),
-                          Money.csvNumber(report.tripBalance.a.share),
-                          Money.csvNumber(report.chfBalance.a.share)]))
-        lines.append(row([L.csvRowShare(nameB),
-                          Money.csvNumber(report.tripBalance.b.share),
-                          Money.csvNumber(report.chfBalance.b.share)]))
-        lines.append(row([L.csvRowNet(nameA),
-                          Money.csvNumber(report.tripBalance.netA),
-                          Money.csvNumber(report.chfBalance.netA)]))
-        lines.append(row([L.csvRowSettlement,
-                          settlementText(report.settlementTrip, nameA: nameA, nameB: nameB),
-                          settlementText(report.settlementCHF, nameA: nameA, nameB: nameB)]))
+        if report.settlementTrip.isBalanced {
+            lines.append(row([L.settlementBalanced]))
+        } else {
+            lines.append(row([L.csvColFrom, L.csvColTo,
+                              L.csvColAmountTrip(tripCurrency), L.csvColAmountCHF]))
+            // Die CHF-Abrechnung kann aufgrund der Rundung anders aufgeteilt sein;
+            // sie wird deshalb separat und vollständig ausgewiesen.
+            for transfer in report.settlementTrip.transfers {
+                lines.append(row([transfer.from.name, transfer.to.name,
+                                  Money.csvNumber(transfer.amount), ""]))
+            }
+            for transfer in report.settlementCHF.transfers {
+                lines.append(row([transfer.from.name, transfer.to.name,
+                                  "", Money.csvNumber(transfer.amount)]))
+            }
+        }
 
         if report.provisionalCount > 0 {
             lines.append("")
@@ -126,7 +147,7 @@ public enum CSVExporter {
     }
 
     /// Schreibt den Export in eine temporäre Datei und gibt deren URL zurück
-    /// (Eingabe für `ShareLink` bzw. `UIActivityViewController`).
+    /// (Eingabe für die iOS-Freigabefunktion).
     public static func writeTemporaryFile(_ result: ExportResult) throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(result.fileName)
         try? FileManager.default.removeItem(at: url)
@@ -164,21 +185,14 @@ public enum CSVExporter {
         fields.map(escape).joined(separator: separator)
     }
 
-    static func payerLabel(_ payer: Payer, nameA: String, nameB: String) -> String {
-        switch payer {
-        case .a: return nameA
-        case .b: return nameB
-        case .shared: return L.payerShared
+    static func payerLabel(_ snapshot: ExpenseSnapshot, participants: [ParticipantSnapshot]) -> String {
+        if let singleID = snapshot.singlePayerID {
+            return participants.first { $0.id == singleID }?.name ?? L.participantUnnamed
         }
-    }
-
-    static func settlementText(_ settlement: Settlement, nameA: String, nameB: String) -> String {
-        guard let debtor = settlement.debtor, let creditor = settlement.creditor else {
-            return L.settlementBalanced
-        }
-        let debtorName = debtor == .a ? nameA : nameB
-        let creditorName = creditor == .a ? nameA : nameB
-        return "\(debtorName) → \(creditorName): \(Money.csvNumber(settlement.amount)) \(settlement.currencyCode)"
+        let names = participants
+            .filter { (snapshot.paymentPercentages[$0.id] ?? 0) > 0 }
+            .map(\.name)
+        return names.isEmpty ? L.payerShared : names.joined(separator: " + ")
     }
 
     static func formatDateRange(_ start: Date?, _ end: Date?) -> String {
@@ -221,15 +235,6 @@ public enum Formatters {
     public static let fileDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
-    /// ISO-Tagesdatum in UTC – Schlüssel des Wechselkurs-Caches und des EZB-Feeds.
-    public static let isoDay: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()

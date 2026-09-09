@@ -11,6 +11,9 @@ import Foundation
 ///
 /// Die verwendeten Kurse werden zusammen mit Kursdatum und Quelle eingefroren,
 /// damit eine Ausgabe später nicht plötzlich einen anderen CHF-Wert hat.
+///
+/// **Zahler:** Ist `payer` gesetzt, hat genau diese Person ausgelegt. Ist `payer`
+/// leer, haben mehrere bezahlt – dann gilt die Aufteilung in `paymentShares`.
 @objc(Expense)
 public final class Expense: NSManagedObject, Identifiable {
 
@@ -28,33 +31,23 @@ public final class Expense: NSManagedObject, Identifiable {
     /// true, solange kein echter Kurs vorlag (offline ohne Cache). Der Betrag wird
     /// dann nicht in die CHF-Bilanz eingerechnet und in der UI markiert.
     @NSManaged public var isRateProvisional: Bool
-    @NSManaged public var payerRaw: String?
-    /// Auslage-Anteil von Person A in Prozent – nur relevant bei Zahler "Gemeinsam".
-    @NSManaged public var splitPercentA: Double
-    @NSManaged public var categoryRaw: String?
     @NSManaged public var note: String?
     @NSManaged public var date: Date?
     @NSManaged public var createdAt: Date?
     @NSManaged public var updatedAt: Date?
-    /// Gerätename/Person der letzten Änderung – Basis für die Konflikt-Nachvollziehbarkeit.
+    /// Wer hat zuletzt geändert – Basis für die Konflikt-Nachvollziehbarkeit.
     @NSManaged public var lastEditedBy: String?
     @NSManaged public var trip: Trip?
+    @NSManaged public var category: ExpenseCategory?
+    /// Alleiniger Zahler. `nil` = mehrere haben bezahlt (siehe `paymentShares`).
+    @NSManaged public var payer: Participant?
+    @NSManaged public var paymentShares: NSSet?
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<Expense> {
         NSFetchRequest<Expense>(entityName: "Expense")
     }
 
     // MARK: - Typisierte Zugriffe
-
-    public var payer: Payer {
-        get { Payer(rawValue: payerRaw ?? "") ?? .a }
-        set { payerRaw = newValue.rawValue }
-    }
-
-    public var category: ExpenseCategory {
-        get { ExpenseCategory(rawValue: categoryRaw ?? "") ?? .restaurant }
-        set { categoryRaw = newValue.rawValue }
-    }
 
     public var rateSource: RateSource {
         get { RateSource(rawValue: rateSourceRaw ?? "") ?? .unknown }
@@ -67,9 +60,44 @@ public final class Expense: NSManagedObject, Identifiable {
     public var amountTripDecimal: Decimal { amountTrip?.decimalValue ?? amountDecimal }
     public var amountCHFDecimal: Decimal? { isRateProvisional ? nil : amountCHF?.decimalValue }
 
+    /// Haben mehrere Personen zusammen ausgelegt?
+    public var isSplitPayment: Bool { payer == nil }
+
+    public var shareList: [PaymentShare] {
+        let all = (paymentShares as? Set<PaymentShare>) ?? []
+        return all.sorted {
+            ($0.participant?.sortIndex ?? 0) < ($1.participant?.sortIndex ?? 0)
+        }
+    }
+
+    /// Auslage je Person in Prozent – unabhängig davon, ob eine oder mehrere
+    /// Personen bezahlt haben.
+    public var paymentPercentages: [UUID: Decimal] {
+        if let payer, let id = payer.id {
+            return [id: 100]
+        }
+        var result: [UUID: Decimal] = [:]
+        for share in shareList {
+            guard let id = share.participant?.id, share.percent > 0 else { continue }
+            result[id, default: 0] += Decimal(share.percent)
+        }
+        return result
+    }
+
     public var displayNote: String {
         let trimmed = (note ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? category.displayName : trimmed
+        return trimmed.isEmpty ? (category?.displayName ?? L.expenseFallbackName) : trimmed
+    }
+
+    public var categoryName: String { category?.displayName ?? L.categoryUnnamed }
+
+    /// Bezeichnung des Zahlers für Listen und Export.
+    public var payerDescription: String {
+        if let payer { return payer.displayName }
+        let names = shareList
+            .filter { $0.percent > 0 }
+            .compactMap { $0.participant?.displayName }
+        return names.isEmpty ? L.payerShared : names.joined(separator: " + ")
     }
 
     // MARK: - Factory
@@ -83,9 +111,8 @@ public final class Expense: NSManagedObject, Identifiable {
         expense.createdAt = Date()
         expense.updatedAt = Date()
         expense.currencyCode = trip.currency
-        expense.category = .restaurant
-        expense.payer = .a
-        expense.splitPercentA = 50
+        expense.category = trip.categoryList.first
+        expense.payer = trip.participantList.first
         expense.note = ""
         expense.amount = 0
         // Bei zwei Stores (privat/geteilt) muss eine neue Ausgabe explizit in
@@ -108,32 +135,22 @@ public final class Expense: NSManagedObject, Identifiable {
         rateSource = conversion.source
         isRateProvisional = conversion.isProvisional
     }
-}
 
-/// Rolle einer Person innerhalb einer Reise.
-public enum Person: String, CaseIterable, Identifiable, Sendable {
-    case a = "A"
-    case b = "B"
-
-    public var id: String { rawValue }
-
-    /// Vorgabe gemäss Projektentscheid: Person A = Raphi, Person B = Gini.
-    public static let defaultNameA = "Raphi"
-    public static let defaultNameB = "Gini"
-
-    public var other: Person { self == .a ? .b : .a }
-}
-
-/// Wer hat die Ausgabe ausgelegt?
-public enum Payer: String, CaseIterable, Identifiable, Sendable {
-    /// Person A hat den ganzen Betrag ausgelegt.
-    case a = "A"
-    /// Person B hat den ganzen Betrag ausgelegt.
-    case b = "B"
-    /// Beide haben ausgelegt – aufgeteilt nach `Expense.splitPercentA`.
-    case shared = "SHARED"
-
-    public var id: String { rawValue }
+    /// Ersetzt die Auslage-Aufteilung. Bei einem einzelnen Zahler werden alle
+    /// Anteile entfernt, damit keine widersprüchlichen Daten zurückbleiben.
+    public func setPayment(singlePayer: Participant?,
+                           shares: [UUID: Double],
+                           in context: NSManagedObjectContext) {
+        for existing in shareList {
+            context.delete(existing)
+        }
+        payer = singlePayer
+        guard singlePayer == nil, let trip else { return }
+        for participant in trip.participantList {
+            guard let id = participant.id, let percent = shares[id], percent > 0 else { continue }
+            PaymentShare.create(in: context, expense: self, participant: participant, percent: percent)
+        }
+    }
 }
 
 /// Herkunft des verwendeten Wechselkurses – wird pro Ausgabe eingefroren.

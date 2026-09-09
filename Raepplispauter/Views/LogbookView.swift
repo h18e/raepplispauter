@@ -3,6 +3,8 @@ import SwiftUI
 
 /// Logbuch: chronologische, filter- und sortierbare Liste aller Ausgaben
 /// mit Bearbeiten und Löschen.
+///
+/// Ist die Reise abgeschlossen, sind Erfassen, Ändern und Löschen gesperrt.
 struct LogbookView: View {
 
     @ObservedObject var trip: Trip
@@ -11,11 +13,12 @@ struct LogbookView: View {
 
     @FetchRequest private var expenses: FetchedResults<Expense>
 
-    @State private var categoryFilter: ExpenseCategory?
-    @State private var payerFilter: Payer?
+    @State private var categoryFilterID: UUID?
+    @State private var payerFilterID: UUID?
     @State private var sortOrder: SortOrder = .dateDescending
     @State private var editTarget: EditTarget?
     @State private var showNewExpense = false
+    @State private var errorMessage: String?
 
     init(trip: Trip) {
         _trip = ObservedObject(wrappedValue: trip)
@@ -46,11 +49,12 @@ struct LogbookView: View {
 
     private var filtered: [Expense] {
         var result = Array(expenses)
-        if let categoryFilter {
-            result = result.filter { $0.category == categoryFilter }
+        if let categoryFilterID {
+            result = result.filter { $0.category?.id == categoryFilterID }
         }
-        if let payerFilter {
-            result = result.filter { $0.payer == payerFilter }
+        if let payerFilterID {
+            // Zählt auch als Treffer, wenn die Person nur anteilig bezahlt hat.
+            result = result.filter { ($0.paymentPercentages[payerFilterID] ?? 0) > 0 }
         }
         switch sortOrder {
         case .dateDescending:
@@ -65,14 +69,16 @@ struct LogbookView: View {
         return result
     }
 
-    private var isFiltering: Bool { categoryFilter != nil || payerFilter != nil }
+    private var isFiltering: Bool { categoryFilterID != nil || payerFilterID != nil }
 
     var body: some View {
         Group {
             if expenses.isEmpty {
                 EmptyStateView(symbol: "list.bullet.rectangle",
                                title: L.logbookEmpty,
-                               actionTitle: L.expenseNewTitle) { showNewExpense = true }
+                               actionTitle: trip.isEditable ? L.expenseNewTitle : nil) {
+                    showNewExpense = true
+                }
             } else if filtered.isEmpty {
                 EmptyStateView(symbol: "line.3.horizontal.decrease.circle",
                                title: L.logbookEmptyFiltered,
@@ -86,13 +92,14 @@ struct LogbookView: View {
                             } label: {
                                 ExpenseRow(snapshot: ExpenseSnapshot(expense: expense),
                                            tripCurrency: trip.currency,
-                                           nameA: trip.nameA,
-                                           nameB: trip.nameB)
+                                           participants: trip.participantSnapshots)
                             }
                             .buttonStyle(.plain)
                             .listRowBackground(Theme.surface)
                         }
-                        .onDelete(perform: delete)
+                        .onDelete { offsets in
+                            delete(at: offsets)
+                        }
                     } header: {
                         Text(L.logbookCount(filtered.count))
                     }
@@ -107,13 +114,15 @@ struct LogbookView: View {
             ToolbarItem(placement: .topBarLeading) {
                 filterMenu
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showNewExpense = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
+            if trip.isEditable {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showNewExpense = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .accessibilityLabel(L.expenseNewTitle)
                 }
-                .accessibilityLabel(L.expenseNewTitle)
             }
         }
         .sheet(item: $editTarget) { target in
@@ -121,6 +130,12 @@ struct LogbookView: View {
         }
         .sheet(isPresented: $showNewExpense) {
             ExpenseEditorView(trip: trip, expense: nil)
+        }
+        .alert(L.errorTitle, isPresented: Binding(get: { errorMessage != nil },
+                                                  set: { if !$0 { errorMessage = nil } })) {
+            Button(L.ok, role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 
@@ -132,19 +147,19 @@ struct LogbookView: View {
                 }
             }
 
-            Picker(L.expenseCategory, selection: $categoryFilter) {
-                Text(L.logbookAllCategories).tag(ExpenseCategory?.none)
-                ForEach(ExpenseCategory.ordered) { category in
-                    Label(category.displayName, systemImage: category.symbolName)
-                        .tag(ExpenseCategory?.some(category))
+            Picker(L.expenseCategory, selection: $categoryFilterID) {
+                Text(L.logbookAllCategories).tag(UUID?.none)
+                ForEach(trip.categoryList, id: \.objectID) { category in
+                    Label(category.displayName, systemImage: category.symbol)
+                        .tag(category.id)
                 }
             }
 
-            Picker(L.fieldPayer, selection: $payerFilter) {
-                Text(L.logbookAllPayers).tag(Payer?.none)
-                Text(trip.nameA).tag(Payer?.some(.a))
-                Text(trip.nameB).tag(Payer?.some(.b))
-                Text(L.payerShared).tag(Payer?.some(.shared))
+            Picker(L.fieldPayer, selection: $payerFilterID) {
+                Text(L.logbookAllPayers).tag(UUID?.none)
+                ForEach(trip.participantList, id: \.objectID) { participant in
+                    Text(participant.displayName).tag(participant.id)
+                }
             }
 
             if isFiltering {
@@ -161,11 +176,15 @@ struct LogbookView: View {
     }
 
     private func resetFilters() {
-        categoryFilter = nil
-        payerFilter = nil
+        categoryFilterID = nil
+        payerFilterID = nil
     }
 
     private func delete(at offsets: IndexSet) {
+        guard trip.isEditable else {
+            errorMessage = L.tripClosedBlocked
+            return
+        }
         let items = filtered
         for index in offsets {
             guard items.indices.contains(index) else { continue }
@@ -173,16 +192,4 @@ struct LogbookView: View {
         }
         PersistenceController.shared.save()
     }
-}
-
-#Preview {
-    let controller = PersistenceController.preview
-    let trip = (try? controller.viewContext.fetch(Trip.fetchRequest()))?.first
-    return NavigationStack {
-        if let trip {
-            LogbookView(trip: trip)
-        }
-    }
-    .environment(\.managedObjectContext, controller.viewContext)
-    .preferredColorScheme(.dark)
 }

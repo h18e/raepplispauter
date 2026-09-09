@@ -1,8 +1,8 @@
 # Räpplispauter
 
-iOS-App zur gemeinsamen Verwaltung von Ferienausgaben für zwei Personen
-(**Raphi** = Person A, **Gini** = Person B) mit automatischer iCloud-Synchronisation
-zwischen **zwei getrennten Apple-Accounts**.
+iOS-App zur gemeinsamen Verwaltung von Ferienausgaben für **beliebig viele
+Personen**, mit automatischer iCloud-Synchronisation zwischen getrennten
+Apple-Accounts.
 
 - SwiftUI (App-Lifecycle), Dark Mode als primäres Erscheinungsbild
 - Core Data + CloudKit (`NSPersistentCloudKitContainer`) mit CloudKit Sharing
@@ -10,29 +10,28 @@ zwischen **zwei getrennten Apple-Accounts**.
 - Kein eigener Server – ausschliesslich iCloud
 - UI-Texte in Bärndütsch, zentral in `Resources/Strings.swift` + `Localizable.xcstrings`
 - Deployment-Target: **iOS 26.0**
-- **Lokalmodus** für Tests mit einer gratis Apple-ID (Standard, siehe Abschnitt 0)
+- Für die App-Store-Veröffentlichung vorbereitet – siehe `RELEASE.md`
 
 ---
 
-## 0. Lokalmodus vs. iCloud-Modus
+## 0. Betriebsart: iCloud oder nur lokal
 
-Die App kennt zwei Betriebsarten. **Ausgeliefert wird sie im Lokalmodus**, damit
-sie sich mit einer gratis Apple-ID sofort aufs iPhone spielen lässt.
+Die App kennt zwei Betriebsarten. **Ausgeliefert wird sie im iCloud-Modus.**
 
-| | Lokalmodus (Standard) | iCloud-Modus |
+| | iCloud-Modus (Standard) | Lokalmodus |
 |---|---|---|
-| Apple-Account | gratis Apple-ID reicht | **Apple Developer Program (99 $/Jahr)** |
+| Apple-Account | **Apple Developer Program (99 $/Jahr)** | gratis Apple-ID reicht |
 | Erfassen, Bilanz, Logbuch, Auswertung, Abrechnung, CSV | ✅ | ✅ |
-| Sync zwischen zwei Geräten | ❌ | ✅ |
-| Reise mit dem Partner teilen | ❌ | ✅ |
-| App läuft nach Installation | 7 Tage, dann neu installieren | 1 Jahr |
+| Sync zwischen Geräten | ✅ | ❌ |
+| Reise mit anderen teilen | ✅ | ❌ |
+| App läuft nach Installation | 1 Jahr | 7 Tage, dann neu installieren |
 
 ### Umschalten – zwei Stellen, beide müssen zusammenpassen
 
 **1. Code:** `Raepplispauter/App/AppConfiguration.swift`
 
 ```swift
-public static let syncMode: SyncMode = .localOnly   // bzw. .cloudKit
+public static let syncMode: SyncMode = .cloudKit   // bzw. .localOnly
 ```
 
 **2. Signierung:** Xcode → Projekt **Raepplispauter** → TARGETS → **Raepplispauter**
@@ -41,8 +40,8 @@ suchen → Wert setzen:
 
 | `syncMode` | Code Signing Entitlements |
 |---|---|
-| `.localOnly` | `Config/Raepplispauter-Local.entitlements` |
 | `.cloudKit` | `Config/Raepplispauter.entitlements` |
+| `.localOnly` | `Config/Raepplispauter-Local.entitlements` |
 
 > **Warum beides?** Eine gratis Apple-ID kann keine iCloud-Entitlements
 > signieren – wären sie aktiv, scheiterte schon das Erstellen des
@@ -50,19 +49,17 @@ suchen → Wert setzen:
 
 ### Sicherheitsnetz
 
-Steht `syncMode` auf `.cloudKit`, ist iCloud aber nicht verfügbar (fehlendes
-Entitlement, kein iCloud-Account, kein Container), **stürzt die App nicht ab**:
-`PersistenceController` fällt automatisch auf den Lokalmodus zurück und vermerkt
-das im Sync-Protokoll sowie in den Einstellungen. Abschalten lässt sich dieses
-Verhalten über `AppConfiguration.allowsAutomaticLocalFallback`.
+Ist iCloud nicht verfügbar (fehlendes Entitlement, kein iCloud-Account, kein
+Container), **stürzt die App nicht ab**: `PersistenceController` fällt automatisch
+auf den Lokalmodus zurück und vermerkt das im Sync-Protokoll sowie in den
+Einstellungen. Abschaltbar über `AppConfiguration.allowsAutomaticLocalFallback`.
 
 ### Datenbestand beim Wechsel
 
-Beide Modi benutzen dieselbe Datei (`private.sqlite`). Wer später vom Lokal- in
-den iCloud-Modus wechselt, **behält seine erfassten Reisen und Ausgaben**; sie
-werden beim ersten Start in iCloud hochgeladen.
+Beide Modi benutzen dieselbe Datei (`private.sqlite`). Wer vom Lokal- in den
+iCloud-Modus wechselt, **behält seine erfassten Reisen**; sie werden beim ersten
+Start hochgeladen.
 
----
 
 ## 1. Projekt öffnen und einrichten
 
@@ -107,56 +104,82 @@ cd Raepplispauter && xcodegen generate
 ```
 Raepplispauter/
 ├─ Raepplispauter.xcodeproj
-├─ Config/                     Info.plist, Entitlements
+├─ Config/                     Info.plist, Entitlements (iCloud + lokal)
 ├─ Tools/                      generate-xcstrings.py
+├─ PRIVACY.md                  Entwurf der Datenschutzerklärung
+├─ RELEASE.md                  Checkliste für den App Store
 └─ Raepplispauter/
-   ├─ App/                     Einstieg, Navigation, Theme, Einstellungen
-   ├─ Model/                   Core-Data-Modell + NSManagedObject-Klassen
+   ├─ App/                     Einstieg, Navigation, Theme, Konfiguration
+   ├─ Model/                   Core Data: Trip, Participant, ExpenseCategory,
+   │                           Expense, PaymentShare
    ├─ Persistence/             Container (privat + geteilt), Konflikt-Protokoll
    ├─ Sharing/                 CKShare erstellen, einladen, annehmen
    ├─ Exchange/                EZB-Kurse: Feed, Cache, Umrechnung, Nachtrag
-   ├─ Logic/                   Rundung, Bilanz, Abrechnung, CSV  (Core-Data-frei)
-   ├─ Views/                   Bilanz, Logbuch, Auswertung, Abrechnung, Reisen
-   └─ Resources/               Strings.swift, Localizable.xcstrings, Assets
+   ├─ Logic/                   Rundung, Aufteilung, Bilanz, Abrechnung, CSV
+   ├─ Views/                   Bilanz, Logbuch, Auswertung, Abrechnung,
+   │                           Reisen, Kategorien, Einstellungen
+   └─ Resources/               Strings.swift, Localizable.xcstrings,
+                               PrivacyInfo.xcprivacy, Assets
 ```
 
 Die Schichten sind bewusst getrennt: `Logic/` kennt weder Core Data noch SwiftUI
 und ist deshalb vollständig unit-testbar (`RaepplispauterTests`).
 
----
 
 ## 3. Das Rechenmodell (wichtig zu verstehen)
 
-Jede Ausgabe hat **zwei** Dimensionen:
+Eine Reise hat **beliebig viele Personen**. Jede Ausgabe hat zwei Dimensionen:
 
 | Dimension | Bedeutung | Wo eingestellt |
 |-----------|-----------|----------------|
 | **Zahler** | Wer hat *ausgelegt*? | pro Ausgabe |
-| **Kostenschlüssel** | Wer *trägt* die Kosten? | pro Reise (Standard 50/50) |
+| **Kostenschlüssel** | Wer *trägt* die Kosten? | pro Reise, je Person ein Schieber |
 
-* Zahler **Raphi** → Raphi hat 100 % ausgelegt
-* Zahler **Gini** → Gini hat 100 % ausgelegt
-* Zahler **Gmeinsam** → beide haben ausgelegt, im Verhältnis des
-  Aufteilungsschlüssels der Ausgabe (Standard 50/50, z. B. auf 60/40 stellbar)
+* Zahler = **eine Person** → sie hat 100 % ausgelegt
+* Zahler = **Gmeinsam** → mehrere haben ausgelegt, nach den Schiebern der Ausgabe
 
-Die Bilanz ist dann schlicht:
+Die Bilanz je Person ist dann schlicht:
 
 ```
-Saldo(Raphi) = ausgelegt(Raphi) − getragen(Raphi)
+Saldo(Person) = ausgelegt(Person) − getragen(Person)
 ```
 
-**Beispiele** (Kostenschlüssel 50/50):
+**Beispiel** – drei Personen zu je einem Drittel, Anna zahlt 90 € Hotel:
 
-| Ausgabe | Zahler | Ergebnis |
-|---------|--------|----------|
-| 100 € | Raphi | Gini schuldet Raphi 50 € |
-| 100 € | Gmeinsam 50/50 | ausgeglichen |
-| 100 € | Gmeinsam 60/40 | Gini schuldet Raphi 10 € |
+| Person | ausgelegt | getragen | Saldo |
+|---|---|---|---|
+| Anna | 90 | 30 | **+60** |
+| Beat | 0 | 30 | −30 |
+| Cem | 0 | 30 | −30 |
 
-Bei einem Reise-Kostenschlüssel von z. B. 70/30 trägt Raphi 70 % aller Ausgaben –
-zahlt er 100 €, steht er nur mit 30 € im Plus.
+### Die 100-%-Regel
 
----
+Beide Schieberblöcke (Kostenschlüssel und Auslage) summieren sich **immer genau
+auf 100 %**. Bewegt man einen Schieber, verteilt `SplitCalculator` den Rest
+proportional auf die übrigen Personen – über 100 % zu kommen ist konstruktiv
+unmöglich, es braucht keine Fehlermeldung. Der Knopf *Glychmässig* verteilt
+gleichmässig.
+
+### Schlussabrechnung bei mehreren Personen
+
+Statt „jeder mit jedem“ rechnet `SettlementCalculator` die Salden gegeneinander
+auf: grösster Schuldner gegen grössten Gläubiger, bis alles ausgeglichen ist.
+Bei n Personen ergibt das **höchstens n−1 Zahlungen**.
+
+### Kategorien
+
+Kategorien gehören zur Reise, nicht zum Gerät – sie wandern beim Teilen mit.
+Beim Anlegen einer Reise entsteht ein Startsatz (Unterkunft, Restaurant,
+Läbesmittel, ÖV, Outo, Sightseeing); eigene lassen sich jederzeit ergänzen
+(auch direkt beim Erfassen einer Ausgabe), umbenennen, einfärben und – solange
+keine Ausgabe sie verwendet – löschen.
+
+### Abgeschlossene Reisen
+
+Ist eine Reise abgeschlossen, sind Erfassen, Ändern und Löschen von Ausgaben
+gesperrt, ebenso Personen und Kostenschlüssel. Die Abrechnung bleibt damit
+stabil. Über *Abrächnig → Reis wieder ufmache* lässt sich die Sperre lösen.
+
 
 ## 4. Wechselkurse (EZB)
 
@@ -192,7 +215,7 @@ CHF-Beträge werden immer auf **5 Rappen** gerundet (`Money.roundToFiveRappen`).
 
 ---
 
-## 5. CloudKit-Sharing zwischen zwei Accounts
+## 5. CloudKit-Sharing zwischen getrennten Accounts
 
 Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 
@@ -204,8 +227,9 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 **Ablauf**
 
 1. **Einladen** – In der Reise „Mit em Partner teile“ tippen.
-   `NSPersistentCloudKitContainer.share(_:to:)` verschiebt die Reise samt allen
-   Ausgaben in eine eigene, geteilte CloudKit-Zone und erzeugt einen `CKShare`.
+   `NSPersistentCloudKitContainer.share(_:to:)` verschiebt die Reise samt
+   Personen, Kategorien und Ausgaben in eine eigene, geteilte CloudKit-Zone und
+   erzeugt einen `CKShare`.
    Der `UICloudSharingController` verschickt die Einladung (Nachricht, Mail, Link).
 2. **Annehmen** – Der Partner tippt auf den Link, iOS ruft
    `application(_:userDidAcceptCloudKitShareWith:)` auf, die App ruft
@@ -248,9 +272,10 @@ cd Raepplispauter && python3 Tools/generate-xcstrings.py
 `RaepplispauterTests` deckt die Berechnungslogik ab (⌘U in Xcode):
 
 * `MoneyTests` – 5-Rappen-Rundung, Betragserfassung
-* `BalanceCalculatorTests` – Zahler, Aufteilungsschlüssel, Kostenschlüssel
-* `SettlementCalculatorTests` – Schuldrichtung, Kategorien-/Zahler-Auswertung
-* `CSVExporterTests` – Aufbau, Maskierung, Dateiname
+* `SplitCalculatorTests` – die 100-%-Regel, gleichmässig verteilen, Person dazu/weg
+* `BalanceCalculatorTests` – Zahler, geteilte Auslagen, Kostenschlüssel, 2–3 Personen
+* `SettlementCalculatorTests` – Ausgleich über mehrere Personen, Auswertung
+* `CSVExporterTests` – Aufbau, Maskierung, Spalte je Person, Dateiname
 * `ExchangeRateTests` – EZB-Parser, Kreuzkurse, Cache, Umrechnung
 
 ---
@@ -267,3 +292,6 @@ cd Raepplispauter && python3 Tools/generate-xcstrings.py
 * Mit einer **gratis Apple-ID** gilt: App läuft 7 Tage, danach in Xcode nochmals
   ⌘R (die erfassten Daten bleiben erhalten, solange die App nicht gelöscht wird);
   maximal 3 selbst signierte Apps pro Gerät; kein iCloud, kein TestFlight.
+* Solange `AppConfiguration.resetStoreOnIncompatibleModel` auf `true` steht, baut
+  die App bei einer Datenmodell-Änderung den lokalen Speicher neu auf. **Vor der
+  App-Store-Veröffentlichung auf `false` setzen** – siehe `RELEASE.md`.

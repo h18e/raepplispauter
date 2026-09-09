@@ -6,41 +6,66 @@ import SwiftUI
 /// Funktioniert vollständig **offline**: gespeichert wird immer sofort lokal.
 /// Der Wechselkurs kommt – wenn möglich – aus dem lokalen Kurs-Cache; fehlt er,
 /// wird die Ausgabe als provisorisch markiert und später automatisch nachgerechnet.
+///
+/// Ist die Reise abgeschlossen, lässt sich hier nichts mehr ändern.
 struct ExpenseEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var context
 
-    let trip: Trip
+    @ObservedObject var trip: Trip
     let expense: Expense?
 
     @State private var amountText: String
     @State private var currencyCode: String
-    @State private var category: ExpenseCategory
-    @State private var payer: Payer
-    @State private var splitPercentA: Double
+    @State private var categoryID: UUID?
+    /// `nil` = mehrere haben bezahlt (dann gilt `paymentPercentages`).
+    @State private var payerID: UUID?
+    @State private var paymentPercentages: [Double]
     @State private var note: String
     @State private var date: Date
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var showDeleteConfirmation = false
+    @State private var showNewCategory = false
+    @State private var knownCategoryIDs: Set<UUID>
 
     @FocusState private var amountFocused: Bool
 
     init(trip: Trip, expense: Expense?) {
-        self.trip = trip
+        _trip = ObservedObject(wrappedValue: trip)
         self.expense = expense
+
+        let participants = trip.participantList
 
         _amountText = State(initialValue: expense.map {
             $0.amountDecimal > 0 ? Money.formatPlain($0.amountDecimal) : ""
         } ?? "")
         _currencyCode = State(initialValue: expense?.currency ?? trip.currency)
-        _category = State(initialValue: expense?.category ?? .restaurant)
-        _payer = State(initialValue: expense?.payer ?? .a)
-        _splitPercentA = State(initialValue: expense?.splitPercentA ?? 50)
+        _categoryID = State(initialValue: expense?.category?.id ?? trip.categoryList.first?.id)
         _note = State(initialValue: expense?.note ?? "")
         _date = State(initialValue: expense?.date ?? Date())
+        _knownCategoryIDs = State(initialValue: Set(trip.categoryList.compactMap(\.id)))
+
+        if let expense {
+            _payerID = State(initialValue: expense.payer?.id)
+            if expense.isSplitPayment {
+                let shares = expense.paymentPercentages
+                _paymentPercentages = State(initialValue: participants.map {
+                    guard let id = $0.id, let percent = shares[id] else { return 0 }
+                    return NSDecimalNumber(decimal: percent).doubleValue
+                })
+            } else {
+                _paymentPercentages = State(initialValue: SplitCalculator.equalShares(count: participants.count))
+            }
+        } else {
+            // Neue Ausgabe: erste Person als Zahlerin vorschlagen.
+            _payerID = State(initialValue: participants.first?.id)
+            _paymentPercentages = State(initialValue: SplitCalculator.equalShares(count: participants.count))
+        }
     }
+
+    private var participants: [ParticipantSnapshot] { trip.participantSnapshots }
 
     private var parsedAmount: Decimal? {
         guard let value = Money.parse(amountText), value > 0 else { return nil }
@@ -56,20 +81,29 @@ struct ExpenseEditorView: View {
                                                            on: date)
     }
 
+    /// Reise abgeschlossen oder nur Leserechte am Share → nichts änderbar.
     private var canEdit: Bool {
-        expense == nil || SharingController.shared.canEdit(trip)
+        trip.isEditable && SharingController.shared.canEdit(trip)
     }
 
     var body: some View {
         NavigationStack {
             Form {
+                if !trip.isEditable {
+                    Section {
+                        Label(L.tripClosedBlocked, systemImage: "lock.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.warning)
+                    }
+                }
+
                 amountSection
                 categorySection
                 payerSection
                 detailsSection
                 conversionSection
 
-                if expense != nil {
+                if expense != nil && canEdit {
                     Section {
                         Button(role: .destructive) {
                             showDeleteConfirmation = true
@@ -79,6 +113,7 @@ struct ExpenseEditorView: View {
                     }
                 }
             }
+            .disabled(!canEdit)
             .scrollContentBackground(.hidden)
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle(expense == nil ? L.expenseNewTitle : L.expenseEditTitle)
@@ -106,7 +141,10 @@ struct ExpenseEditorView: View {
                 Button(L.delete, role: .destructive) { deleteExpense() }
                 Button(L.cancel, role: .cancel) {}
             }
-            .onAppear { amountFocused = expense == nil }
+            .sheet(isPresented: $showNewCategory, onDismiss: selectNewestCategory) {
+                CategoryDetailView(trip: trip, category: nil)
+            }
+            .onAppear { amountFocused = expense == nil && canEdit }
         }
     }
 
@@ -139,82 +177,107 @@ struct ExpenseEditorView: View {
     }
 
     private var categorySection: some View {
-        Section(L.expenseCategory) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-                ForEach(ExpenseCategory.ordered) { item in
-                    Button {
-                        category = item
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: item.symbolName)
-                                .font(.caption)
-                            Text(item.displayName)
-                                .font(.caption.weight(.medium))
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(category == item
-                                      ? Theme.categoryColor(item).opacity(0.24)
-                                      : Color.white.opacity(0.05))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(category == item ? Theme.categoryColor(item) : .clear, lineWidth: 1)
-                        )
-                        .foregroundStyle(category == item ? Theme.categoryColor(item) : Theme.textSecondary)
-                    }
-                    .buttonStyle(.plain)
+        Section {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+                ForEach(trip.categoryList, id: \.objectID) { item in
+                    categoryButton(item)
                 }
+
+                // Neue Kategorie direkt aus der Erfassung heraus anlegen.
+                Button {
+                    showNewCategory = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.caption)
+                        Text(L.categoryNew)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Theme.accent.opacity(0.5),
+                                          style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    )
+                    .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
+        } header: {
+            Text(L.expenseCategory)
         }
+    }
+
+    @ViewBuilder
+    private func categoryButton(_ item: ExpenseCategory) -> some View {
+        let isSelected = categoryID == item.id
+        let color = Theme.categoryColor(Int(item.colorIndex))
+
+        Button {
+            categoryID = item.id
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: item.symbol)
+                    .font(.caption)
+                Text(item.displayName)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? color.opacity(0.24) : Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(isSelected ? color : .clear, lineWidth: 1)
+            )
+            .foregroundStyle(isSelected ? color : Theme.textSecondary)
+        }
+        .buttonStyle(.plain)
     }
 
     private var payerSection: some View {
         Section {
-            Picker(L.payerQuestion, selection: $payer) {
-                Text(trip.nameA).tag(Payer.a)
-                Text(trip.nameB).tag(Payer.b)
-                Text(L.payerShared).tag(Payer.shared)
+            // Bis drei Personen als Segmente, darüber als Auswahlliste – sonst
+            // werden die Segmente unlesbar schmal.
+            if participants.count <= 3 {
+                payerPicker.pickerStyle(.segmented)
+            } else {
+                payerPicker.pickerStyle(.menu)
             }
-            .pickerStyle(.segmented)
 
-            if payer == .shared {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("\(trip.nameA) \(Int(splitPercentA)) %")
-                            .foregroundStyle(Theme.personColor(.a))
-                        Spacer()
-                        Text("\(trip.nameB) \(Int(100 - splitPercentA)) %")
-                            .foregroundStyle(Theme.personColor(.b))
-                    }
-                    .font(.caption.weight(.semibold))
-                    .monospacedDigit()
-
-                    Slider(value: $splitPercentA, in: 0...100, step: 5)
-
-                    if let amount = parsedAmount {
-                        let shareA = amount * Decimal(splitPercentA) / 100
-                        HStack {
-                            Text(Money.format(shareA, currencyCode: currencyCode))
-                            Spacer()
-                            Text(Money.format(amount - shareA, currencyCode: currencyCode))
-                        }
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textSecondary)
-                    }
-                }
+            if payerID == nil && participants.count > 1 {
+                SplitEditorView(participants: participants,
+                                percentages: $paymentPercentages,
+                                amountText: { index in
+                                    guard let amount = parsedAmount,
+                                          paymentPercentages.indices.contains(index) else { return nil }
+                                    let share = amount * Decimal(paymentPercentages[index]) / 100
+                                    return Money.format(share, currencyCode: currencyCode)
+                                })
                 .padding(.vertical, 4)
             }
         } header: {
             Text(L.payerQuestion)
         } footer: {
-            if payer == .shared {
+            if payerID == nil {
                 Text(L.expenseSplitHint)
+            }
+        }
+    }
+
+    private var payerPicker: some View {
+        Picker(L.payerQuestion, selection: $payerID) {
+            ForEach(participants) { participant in
+                Text(participant.name).tag(UUID?.some(participant.id))
+            }
+            if participants.count > 1 {
+                Text(L.payerShared).tag(UUID?.none)
             }
         }
     }
@@ -265,18 +328,28 @@ struct ExpenseEditorView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.textTertiary)
             }
-
-            if !canEdit {
-                Label(L.expenseReadOnly, systemImage: "lock.fill")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.warning)
-            }
         }
     }
 
     // MARK: - Aktionen
 
+    /// Nach dem Anlegen einer Kategorie soll diese gleich ausgewählt sein.
+    private func selectNewestCategory() {
+        let current = trip.categoryList
+        if let created = current.first(where: { candidate in
+            guard let candidateID = candidate.id else { return false }
+            return !knownCategoryIDs.contains(candidateID)
+        }) {
+            categoryID = created.id
+        }
+        knownCategoryIDs = Set(current.compactMap(\.id))
+    }
+
     private func save() async {
+        guard canEdit else {
+            errorMessage = L.tripClosedBlocked
+            return
+        }
         guard let amount = parsedAmount else {
             errorMessage = L.expenseAmountInvalid
             return
@@ -291,33 +364,31 @@ struct ExpenseEditorView: View {
                                                                   on: date)
 
         let target = expense ?? Expense.create(in: context, trip: trip)
-        target.category = category
-        target.payer = payer
-        target.splitPercentA = payer == .shared ? splitPercentA : 50
+        target.category = categoryID.flatMap { id in trip.categoryList.first { $0.id == id } }
         target.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
         target.date = date
         target.applyConversion(conversion)
+
+        // Zahler setzen: entweder eine Person, oder die Aufteilung über alle.
+        let singlePayer = payerID.flatMap { id in trip.participant(with: id) }
+        var shares: [UUID: Double] = [:]
+        if singlePayer == nil {
+            let normalised = SplitCalculator.normalise(paymentPercentages)
+            for (index, participant) in trip.participantList.enumerated() {
+                guard let id = participant.id, normalised.indices.contains(index) else { continue }
+                shares[id] = normalised[index]
+            }
+        }
+        target.setPayment(singlePayer: singlePayer, shares: shares, in: context)
 
         PersistenceController.shared.save()
         dismiss()
     }
 
     private func deleteExpense() {
-        guard let expense else { return }
+        guard let expense, canEdit else { return }
         context.delete(expense)
         PersistenceController.shared.save()
         dismiss()
     }
-}
-
-#Preview {
-    let controller = PersistenceController.preview
-    let trip = (try? controller.viewContext.fetch(Trip.fetchRequest()))?.first
-    return Group {
-        if let trip {
-            ExpenseEditorView(trip: trip, expense: nil)
-        }
-    }
-    .environment(\.managedObjectContext, controller.viewContext)
-    .preferredColorScheme(.dark)
 }

@@ -40,6 +40,7 @@ public enum L {
 
     // MARK: - Kategorien
 
+    /// Startsatz beim Anlegen einer Reise – frei erweiterbar und löschbar.
     public static let categoryUnterkunft = t("category.unterkunft", "Unterkunft")
     public static let categoryRestaurant = t("category.restaurant", "Restaurant")
     public static let categoryLebensmittel = t("category.lebensmittel", "Läbesmittel")
@@ -47,10 +48,47 @@ public enum L {
     public static let categoryAuto = t("category.auto", "Outo")
     public static let categorySightseeing = t("category.sightseeing", "Sightseeing")
 
-    // MARK: - Zahler
+    public static let categoriesTitle = t("categories.title", "Kategorie")
+    public static let categoriesHint = t("categories.hint",
+                                         "D Kategorie ghöre zur Reis und wärde mit em Teile automatisch mitgnoh.")
+    public static let categoriesDeleteHint = t("categories.deleteHint",
+                                               "Zum Lösche nach links wüsche. Kategorie, wo scho bruucht wärde, chöi nid glöscht wärde.")
+    public static let categoryNew = t("category.new", "Nöii Kategorie")
+    public static let categoryEdit = t("category.edit", "Kategorie bearbeite")
+    public static let categoryName = t("category.name", "Name")
+    public static let categoryNamePlaceholder = t("category.namePlaceholder", "z. B. Souvenir")
+    public static let categoryColor = t("category.color", "Farb")
+    public static let categorySymbol = t("category.symbol", "Symbol")
+    public static let categoryUnnamed = t("category.unnamed", "Ohni Kategorie")
+    public static let categoryNeedsOne = t("category.needsOne", "S muess mindestens ei Kategorie blybe.")
+
+    public static func categoryDeleteBlocked(_ names: String) -> String {
+        String(localized: "category.deleteBlocked",
+               defaultValue: "Die Kategorie wärde no bruucht und chöi drum nid glöscht wärde: \(names)")
+    }
+
+    // MARK: - Persone
+
+    public static let participantUnnamed = t("participant.unnamed", "Ohni Name")
+    public static let participantAdd = t("participant.add", "Person zuefüege")
+    public static let participantNamePlaceholder = t("participant.namePlaceholder", "Name")
+    public static let participantNeedsOne = t("participant.needsOne", "S bruucht mindestens ei Person mit eme Name.")
+
+    public static func participantPlaceholderNumbered(_ number: Int) -> String {
+        String(localized: "participant.placeholderNumbered", defaultValue: "Person \(number)")
+    }
+
+    public static func participantDeleteBlocked(_ names: String) -> String {
+        String(localized: "participant.deleteBlocked",
+               defaultValue: "Die Persone hei scho Uusgabe und chöi drum nid glöscht wärde: \(names)")
+    }
+
+    // MARK: - Zahler und Ufteilig
 
     public static let payerShared = t("payer.shared", "Gmeinsam")
     public static let payerQuestion = t("payer.question", "Wär het zahlt?")
+    public static let splitTotal = t("split.total", "Total")
+    public static let splitEqualise = t("split.equalise", "Glychmässig")
 
     // MARK: - Bilanz
 
@@ -69,15 +107,9 @@ public enum L {
     public static let balanceRecent = t("balance.recent", "Letschti Uusgabe")
     public static let balanceShowAll = t("balance.showAll", "Alli zeige")
     public static let balanceNoExpenses = t("balance.noExpenses", "No kei Uusgabe i dere Reis.")
+    public static let balanceNoParticipants = t("balance.noParticipants",
+                                                "Für die Reis si no kei Persone erfasst.")
 
-    public static func balanceOwes(_ debtor: String, _ creditor: String, _ amount: String) -> String {
-        String(localized: "balance.owes", defaultValue: "\(debtor) schuldet \(creditor) \(amount)")
-    }
-
-    /// Ohne Betrag – der Betrag wird darunter gross dargestellt.
-    public static func balanceOwesShort(_ debtor: String, _ creditor: String) -> String {
-        String(localized: "balance.owesShort", defaultValue: "\(debtor) schuldet \(creditor)")
-    }
 
     public static func balanceMissingRates(_ count: Int) -> String {
         String(localized: "balance.missingRates",
@@ -93,9 +125,8 @@ public enum L {
     public static let expenseCategory = t("expense.category", "Kategorie")
     public static let expensePurpose = t("expense.purpose", "Verwändigszwäck")
     public static let expensePurposePlaceholder = t("expense.purposePlaceholder", "z. B. Znacht im Städtli")
-    public static let expenseSplit = t("expense.split", "Ufteilig vo dr Uslag")
     public static let expenseSplitHint = t("expense.splitHint",
-                                           "Wär het wie viel usgleit? Standard isch halb/halb.")
+                                           "Wär het wie viel usgleit? D Summe isch immer 100 % – verschiebsch eine, passe sich di andere a.")
     public static let expenseDateTime = t("expense.dateTime", "Datum & Zyt")
     public static let expenseConversion = t("expense.conversion", "Umrächnig")
     public static let expenseRate = t("expense.rate", "Kurs")
@@ -107,7 +138,6 @@ public enum L {
     public static let expenseDeleteConfirm = t("expense.deleteConfirm", "Die Uusgab würklech lösche?")
     public static let expenseFallbackName = t("expense.fallbackName", "Uusgab")
     public static let expenseProvisionalBadge = t("expense.provisionalBadge", "Kurs fählt")
-    public static let expenseReadOnly = t("expense.readOnly", "Du chasch die Reis nume aaluege, nid bearbeite.")
 
     // MARK: - Logbuech
 
@@ -135,6 +165,7 @@ public enum L {
     public static let analysisByPayer = t("analysis.byPayer", "Nach Zahler")
     public static let analysisEmpty = t("analysis.empty", "No nüt z uswerte.")
     public static let analysisSharePercent = t("analysis.sharePercent", "Aateil")
+    public static let analysisByPayerHint = t("analysis.byPayerHint", "Wär het wie viel usgleit")
 
     // MARK: - Abrächnig
 
@@ -147,6 +178,8 @@ public enum L {
     public static let settlementReopenTrip = t("settlement.reopenTrip", "Reis wieder ufmache")
     public static let settlementClosedNotice = t("settlement.closedNotice", "Die Reis isch abgschlosse.")
     public static let settlementDetails = t("settlement.details", "Detail")
+    public static let settlementCloseConfirm = t("settlement.closeConfirm",
+                                                 "Reis abschlüsse? Drufabe chasch kei Uusgabe meh erfasse, ändere oder lösche.")
 
     // MARK: - Reise
 
@@ -163,11 +196,21 @@ public enum L {
     public static let tripEnd = t("trip.end", "Bis")
     public static let tripCurrency = t("trip.currency", "Landeswärig")
     public static let tripPeople = t("trip.people", "Persone")
-    public static let tripPersonA = t("trip.personA", "Person A")
-    public static let tripPersonB = t("trip.personB", "Person B")
+    public static let tripPeopleHint = t("trip.peopleHint",
+                                         "So viel Persone wie du wottsch. Zum Lösche nach links wüsche – Persone mit Uusgabe blybe gschützt.")
     public static let tripCostShare = t("trip.costShare", "Choschteschlüssel")
     public static let tripCostShareHint = t("trip.costShareHint",
-                                            "Wär trait wie viel vo de gmeinsame Choschte? Standard isch halb/halb.")
+                                            "Wär trait wie viel vo de gmeinsame Choschte? D Summe isch immer genau 100 % – wenn du eine verschiebsch, passe sich di andere automatisch a.")
+    public static let tripCostShareSingle = t("trip.costShareSingle",
+                                              "Mit nume einere Person trait die logischerwys 100 %.")
+    public static let tripClosedHint = t("trip.closedHint",
+                                         "Bi ere abgschlossene Reis chasch kei Uusgabe meh erfasse, ändere oder lösche.")
+    public static let tripClosedBlocked = t("trip.closedBlocked",
+                                            "Die Reis isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache.")
+
+    public static func tripParticipantCount(_ count: Int) -> String {
+        String(localized: "trip.participantCount", defaultValue: "\(count) Persone")
+    }
     public static let tripDeleteConfirm = t("trip.deleteConfirm", "Die Reis mit allne Uusgabe lösche?")
     public static let tripUnnamed = t("trip.unnamed", "Ohni Name")
     public static let tripStatusActive = t("trip.statusActive", "Aktiv")
@@ -208,7 +251,8 @@ public enum L {
     public static let settingsNeverRefreshed = t("settings.neverRefreshed", "No nie aktualisiert")
     public static let settingsSyncLog = t("settings.syncLog", "Sync-Protokoll")
     public static let settingsSyncMode = t("settings.syncMode", "Betriebsart")
-    public static let settingsDeviceOwner = t("settings.deviceOwner", "Wär bisch du uf däm Grät?")
+    public static let settingsDeviceLabel = t("settings.deviceLabel", "Name vo däm Grät")
+    public static let settingsDeviceLabelDefault = t("settings.deviceLabelDefault", "Mys iPhone")
     public static let settingsICloud = t("settings.icloud", "iCloud")
     public static let settingsICloudOk = t("settings.icloudOk", "Bereit")
     public static let settingsICloudMissing = t("settings.icloudMissing", "Kei iCloud-Account – dr Sync isch us")
@@ -244,6 +288,8 @@ public enum L {
     public static let syncLogStartedLocal = t("syncLog.startedLocal", "App im Lokalmodus gstartet – kei iCloud.")
     public static let syncLogCloudUnavailable = t("syncLog.cloudUnavailable",
                                                   "iCloud het nid chönne gstartet wärde – d App louft lokal wyter.")
+    public static let syncLogStoreReset = t("syncLog.storeReset",
+                                            "S Datemodäll het gänderet – dr lokal Spycher isch nöi ufboue worde.")
     public static let syncLogAuthorCloud = t("syncLog.authorCloud", "iCloud")
 
     public static func syncLogInserted(_ subject: String) -> String {
@@ -273,12 +319,14 @@ public enum L {
     public static let fieldCategory = t("field.category", "Kategorie")
     public static let fieldNote = t("field.note", "Verwändigszwäck")
     public static let fieldPayer = t("field.payer", "Zahler")
-    public static let fieldSplit = t("field.split", "Ufteilig")
     public static let fieldDate = t("field.date", "Datum")
     public static let fieldName = t("field.name", "Name")
     public static let fieldPeriod = t("field.period", "Zytruum")
     public static let fieldStatus = t("field.status", "Status")
     public static let fieldCostShare = t("field.costShare", "Choschteschlüssel")
+    public static let fieldParticipants = t("field.participants", "Persone")
+    public static let fieldCategories = t("field.categories", "Kategorie")
+    public static let fieldAppearance = t("field.appearance", "Darstellig")
 
     // MARK: - Kursquelle
 
@@ -321,7 +369,6 @@ public enum L {
     public static let csvColCategory = t("csv.colCategory", "Kategorie")
     public static let csvColPurpose = t("csv.colPurpose", "Verwändigszwäck")
     public static let csvColPayer = t("csv.colPayer", "Zahler")
-    public static let csvColSplitA = t("csv.colSplitA", "Aateil A (%)")
     public static let csvColAmount = t("csv.colAmount", "Betrag")
     public static let csvColCurrency = t("csv.colCurrency", "Wärig")
     public static let csvColRate = t("csv.colRate", "Kurs zu CHF")
@@ -329,9 +376,16 @@ public enum L {
     public static let csvColRateDate = t("csv.colRateDate", "Kursdatum")
     public static let csvColRateSource = t("csv.colRateSource", "Kursquelle")
     public static let csvColCount = t("csv.colCount", "Aazahl")
-    public static let csvColItem = t("csv.colItem", "Position")
     public static let csvTotal = t("csv.total", "Total")
-    public static let csvRowSettlement = t("csv.rowSettlement", "Schlussabrächnig")
+    public static let csvHeaderParticipants = t("csv.headerParticipants", "Persone")
+    public static let csvSectionBalance = t("csv.sectionBalance", "Bilanz pro Person")
+    public static let csvColPerson = t("csv.colPerson", "Person")
+    public static let csvColCostShare = t("csv.colCostShare", "Choschteaateil (%)")
+    public static let csvColPaidCHF = t("csv.colPaidCHF", "Usgleit CHF")
+    public static let csvColShareCHF = t("csv.colShareCHF", "Choschteaateil CHF")
+    public static let csvColNetCHF = t("csv.colNetCHF", "Saldo CHF")
+    public static let csvColFrom = t("csv.colFrom", "Vo")
+    public static let csvColTo = t("csv.colTo", "A")
 
     public static func csvColAmountTrip(_ currency: String) -> String {
         String(localized: "csv.colAmountTrip", defaultValue: "Betrag \(currency)")
@@ -341,16 +395,16 @@ public enum L {
         String(localized: "csv.colPaidBy", defaultValue: "Usgleit \(name)")
     }
 
-    public static func csvRowPaid(_ name: String) -> String {
-        String(localized: "csv.rowPaid", defaultValue: "Usgleit \(name)")
+    public static func csvColPaidTrip(_ currency: String) -> String {
+        String(localized: "csv.colPaidTrip", defaultValue: "Usgleit \(currency)")
     }
 
-    public static func csvRowShare(_ name: String) -> String {
-        String(localized: "csv.rowShare", defaultValue: "Choschteaateil \(name)")
+    public static func csvColShareTrip(_ currency: String) -> String {
+        String(localized: "csv.colShareTrip", defaultValue: "Choschteaateil \(currency)")
     }
 
-    public static func csvRowNet(_ name: String) -> String {
-        String(localized: "csv.rowNet", defaultValue: "Saldo \(name)")
+    public static func csvColNetTrip(_ currency: String) -> String {
+        String(localized: "csv.colNetTrip", defaultValue: "Saldo \(currency)")
     }
 
     public static func csvNoteMissingRates(_ count: Int) -> String {

@@ -145,7 +145,9 @@ public final class ConflictAuditor: ObservableObject {
                            timestamp: Date,
                            context: NSManagedObjectContext) -> SyncLogEntry? {
         let entityName = change.changedObjectID.entity.name ?? ""
-        guard entityName == "Expense" || entityName == "Trip" else { return nil }
+        // Zahlungsanteile sind Beiwerk einer Ausgabe – sie würden das Protokoll
+        // nur mit technischen Einträgen zumüllen.
+        guard ["Expense", "Trip", "Participant", "ExpenseCategory"].contains(entityName) else { return nil }
 
         let subject = describe(objectID: change.changedObjectID, entityName: entityName, context: context)
 
@@ -170,32 +172,47 @@ public final class ConflictAuditor: ObservableObject {
     }
 
     private func describe(objectID: NSManagedObjectID, entityName: String, context: NSManagedObjectContext) -> String {
-        if let expense = try? context.existingObject(with: objectID) as? Expense {
-            let amount = Money.format(expense.amountDecimal, currencyCode: expense.currency)
-            return "\(expense.displayNote) (\(amount))"
+        if let object = try? context.existingObject(with: objectID) {
+            if let expense = object as? Expense {
+                let amount = Money.format(expense.amountDecimal, currencyCode: expense.currency)
+                return "\(expense.displayNote) (\(amount))"
+            }
+            if let trip = object as? Trip {
+                return trip.displayName
+            }
+            if let participant = object as? Participant {
+                return participant.displayName
+            }
+            if let category = object as? ExpenseCategory {
+                return category.displayName
+            }
         }
-        if let trip = try? context.existingObject(with: objectID) as? Trip {
-            return trip.displayName
+        switch entityName {
+        case "Trip": return L.tripUnnamed
+        case "Participant": return L.participantUnnamed
+        case "ExpenseCategory": return L.categoryUnnamed
+        default: return L.expenseFallbackName
         }
-        return entityName == "Trip" ? L.tripUnnamed : L.expenseFallbackName
     }
 
     /// Übersetzt Core-Data-Feldnamen in verständliche Bezeichnungen.
+    /// Technische Felder (Kurse, Zeitstempel, IDs) liefern `nil` und tauchen
+    /// im Protokoll gar nicht erst auf.
     static func fieldLabel(_ name: String) -> String? {
         switch name {
         case "amount", "amountTrip", "amountCHF": return L.fieldAmount
         case "currencyCode": return L.fieldCurrency
-        case "categoryRaw": return L.fieldCategory
+        case "category": return L.fieldCategory
         case "note": return L.fieldNote
-        case "payerRaw": return L.fieldPayer
-        case "splitPercentA": return L.fieldSplit
+        case "payer", "paymentShares": return L.fieldPayer
         case "date": return L.fieldDate
-        case "rateToCHF", "rateTripToCHF", "rateDate", "rateSourceRaw", "isRateProvisional": return nil
         case "name": return L.fieldName
         case "startDate", "endDate": return L.fieldPeriod
         case "isClosed": return L.fieldStatus
-        case "costSharePercentA": return L.fieldCostShare
-        case "updatedAt", "lastEditedBy", "createdAt", "id", "isShared": return nil
+        case "costSharePercent": return L.fieldCostShare
+        case "participants": return L.fieldParticipants
+        case "categories": return L.fieldCategories
+        case "symbolName", "colorIndex": return L.fieldAppearance
         default: return nil
         }
     }

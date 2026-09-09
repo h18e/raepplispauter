@@ -1,7 +1,8 @@
 import Foundation
 
 /// Bilanz einer Person in **einer** Währung.
-public struct PersonBalance: Equatable, Sendable {
+public struct PersonBalance: Equatable, Identifiable, Sendable {
+    public let participant: ParticipantSnapshot
     /// Wie viel diese Person ausgelegt hat.
     public let paid: Decimal
     /// Wie viel diese Person gemäss Kostenschlüssel tragen müsste.
@@ -9,7 +10,11 @@ public struct PersonBalance: Equatable, Sendable {
     /// Positiv = hat zu viel ausgelegt (steht im Plus), negativ = schuldet noch.
     public var net: Decimal { paid - share }
 
-    public init(paid: Decimal, share: Decimal) {
+    public var id: UUID { participant.id }
+    public var name: String { participant.name }
+
+    public init(participant: ParticipantSnapshot, paid: Decimal, share: Decimal) {
+        self.participant = participant
         self.paid = paid
         self.share = share
     }
@@ -19,111 +24,104 @@ public struct PersonBalance: Equatable, Sendable {
 public struct BalanceResult: Equatable, Sendable {
     public let currencyCode: String
     public let total: Decimal
-    public let a: PersonBalance
-    public let b: PersonBalance
+    /// Bilanz je Person, in der Reihenfolge der Personenliste.
+    public let balances: [PersonBalance]
     /// Anzahl Ausgaben, die mangels Wechselkurs nicht einfliessen konnten.
     public let skippedCount: Int
 
-    public init(currencyCode: String, total: Decimal, a: PersonBalance, b: PersonBalance, skippedCount: Int = 0) {
+    public init(currencyCode: String, total: Decimal, balances: [PersonBalance], skippedCount: Int = 0) {
         self.currencyCode = currencyCode
         self.total = total
-        self.a = a
-        self.b = b
+        self.balances = balances
         self.skippedCount = skippedCount
     }
 
-    /// Nettosaldo aus Sicht von Person A (positiv = A steht im Plus).
-    public var netA: Decimal { a.net }
+    public func balance(for participantID: UUID) -> PersonBalance? {
+        balances.first { $0.id == participantID }
+    }
 
-    public func balance(for person: Person) -> PersonBalance {
-        person == .a ? a : b
+    /// Nettosalden als Abbildung – Eingabe für die Schlussabrechnung.
+    public var netByParticipant: [UUID: Decimal] {
+        balances.reduce(into: [:]) { $0[$1.id] = $1.net }
     }
 }
 
-/// Kernstück der Berechnungslogik.
+/// Kernstück der Berechnungslogik – für beliebig viele Personen.
 ///
-/// **Modell (bewusst so festgelegt, siehe README):**
+/// **Modell:**
 ///
-/// * *Zahler* beschreibt, **wer ausgelegt** hat:
-///   - `A` → Person A hat 100 % des Betrags bezahlt
-///   - `B` → Person B hat 100 % des Betrags bezahlt
-///   - `Gemeinsam` → beide haben bezahlt, im Verhältnis `splitPercentA` (Standard 50/50)
+/// * *Zahler* beschreibt, **wer ausgelegt** hat. Entweder eine einzelne Person
+///   (100 %) oder mehrere, aufgeteilt nach den Anteilen der Ausgabe.
 ///
-/// * *Kostenträger* ist immer die gemeinsame Ferienkasse: jede Ausgabe wird nach
-///   dem Reise-Schlüssel `costSharePercentA` getragen (Standard 50/50, pro Reise
-///   anpassbar).
+/// * *Kostenschlüssel* beschreibt, **wer trägt**: Jede Person der Reise hat einen
+///   Prozentsatz (`Participant.costSharePercent`), die Summe ergibt immer 100 %.
+///   Standard ist die gleichmässige Verteilung.
 ///
-/// Daraus folgt die Bilanz: `netto(A) = ausgelegt(A) − getragen(A)`.
-/// Beispiel: 100 € von A bezahlt, Kostenschlüssel 50/50 → A steht mit 50 € im Plus,
-/// B schuldet A 50 €. Eine "Gemeinsam 60/40"-Ausgabe von 100 € bei 50/50-Kosten
-/// ergibt für A ein Plus von 10 €.
+/// Daraus folgt die Bilanz: `netto(Person) = ausgelegt(Person) − getragen(Person)`.
+///
+/// Beispiel mit drei Personen zu je ⅓ und einer Ausgabe von 90 €, die Anna
+/// allein bezahlt hat: Anna +60, Beat −30, Cem −30.
 public enum BalanceCalculator {
 
     /// Ein einzelner Rechnungsposten, reduziert auf das für die Bilanz Nötige.
     public struct Item: Sendable {
         public let amount: Decimal
-        public let payer: Payer
-        public let splitPercentA: Decimal
+        /// Auslage je Person in Prozent (Summe 100).
+        public let paymentPercentages: [UUID: Decimal]
 
-        public init(amount: Decimal, payer: Payer, splitPercentA: Decimal = 50) {
+        public init(amount: Decimal, paymentPercentages: [UUID: Decimal]) {
             self.amount = amount
-            self.payer = payer
-            self.splitPercentA = splitPercentA
+            self.paymentPercentages = paymentPercentages
         }
     }
 
     /// Bilanz über beliebige Posten in einer Währung.
     public static func balance(items: [Item],
-                               costSharePercentA: Decimal,
+                               participants: [ParticipantSnapshot],
                                currencyCode: String,
                                skippedCount: Int = 0) -> BalanceResult {
         var total = Decimal(0)
-        var paidA = Decimal(0)
-        var paidB = Decimal(0)
+        var paid: [UUID: Decimal] = [:]
 
         for item in items {
             total += item.amount
-            switch item.payer {
-            case .a:
-                paidA += item.amount
-            case .b:
-                paidB += item.amount
-            case .shared:
-                let a = item.amount * item.splitPercentA / 100
-                paidA += a
-                paidB += item.amount - a
+            for (participantID, percent) in item.paymentPercentages {
+                paid[participantID, default: 0] += item.amount * percent / 100
             }
         }
 
-        let shareA = total * costSharePercentA / 100
-        let shareB = total - shareA
+        // Kostenschlüssel normalisieren: Sollte die Summe der Anteile (etwa durch
+        // Altdaten) nicht 100 ergeben, wird proportional gerechnet statt falsch.
+        let shareSum = participants.reduce(Decimal(0)) { $0 + $1.costSharePercent }
+        let divisor = shareSum > 0 ? shareSum : Decimal(max(participants.count, 1))
 
-        // Zwischenresultate immer auf 2 Stellen; die 5-Rappen-Rundung greift erst
-        // beim Festschreiben eines Betrags (Ausgabe) und beim Schlusssaldo.
-        let scale = 2
+        let balances = participants.map { participant -> PersonBalance in
+            let weight = shareSum > 0 ? participant.costSharePercent : 1
+            return PersonBalance(participant: participant,
+                                 paid: Money.round(paid[participant.id] ?? 0, scale: 2),
+                                 share: Money.round(total * weight / divisor, scale: 2))
+        }
+
         return BalanceResult(currencyCode: currencyCode,
-                             total: Money.round(total, scale: scale),
-                             a: PersonBalance(paid: Money.round(paidA, scale: scale),
-                                              share: Money.round(shareA, scale: scale)),
-                             b: PersonBalance(paid: Money.round(paidB, scale: scale),
-                                              share: Money.round(shareB, scale: scale)),
+                             total: Money.round(total, scale: 2),
+                             balances: balances,
                              skippedCount: skippedCount)
     }
 
     /// Bilanz in der Reisewährung.
     public static func tripBalance(snapshots: [ExpenseSnapshot],
-                                   tripCurrency: String,
-                                   costSharePercentA: Decimal) -> BalanceResult {
+                                   participants: [ParticipantSnapshot],
+                                   tripCurrency: String) -> BalanceResult {
         let items = snapshots.map {
-            Item(amount: $0.amountTrip, payer: $0.payer, splitPercentA: $0.splitPercentA)
+            Item(amount: $0.amountTrip, paymentPercentages: $0.paymentPercentages)
         }
-        return balance(items: items, costSharePercentA: costSharePercentA, currencyCode: tripCurrency)
+        return balance(items: items, participants: participants, currencyCode: tripCurrency)
     }
 
     /// Bilanz in CHF. Ausgaben ohne gültigen Kurs werden übersprungen und gezählt,
     /// damit die UI transparent darauf hinweisen kann.
     public static func chfBalance(snapshots: [ExpenseSnapshot],
-                                  costSharePercentA: Decimal) -> BalanceResult {
+                                  participants: [ParticipantSnapshot]) -> BalanceResult {
         var items: [Item] = []
         var skipped = 0
         for snapshot in snapshots {
@@ -131,10 +129,10 @@ public enum BalanceCalculator {
                 skipped += 1
                 continue
             }
-            items.append(Item(amount: chf, payer: snapshot.payer, splitPercentA: snapshot.splitPercentA))
+            items.append(Item(amount: chf, paymentPercentages: snapshot.paymentPercentages))
         }
         return balance(items: items,
-                       costSharePercentA: costSharePercentA,
+                       participants: participants,
                        currencyCode: Currencies.home,
                        skippedCount: skipped)
     }

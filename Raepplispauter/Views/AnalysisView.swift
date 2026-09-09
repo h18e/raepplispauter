@@ -18,9 +18,11 @@ struct AnalysisView: View {
 
     private var report: TripReport {
         SettlementCalculator.report(snapshots: expenses.map(ExpenseSnapshot.init(expense:)),
-                                    tripCurrency: trip.currency,
-                                    costSharePercentA: trip.costSharePercentADecimal)
+                                    participants: trip.participantSnapshots,
+                                    tripCurrency: trip.currency)
     }
+
+    private var showsCHF: Bool { trip.currency.uppercased() != Currencies.home }
 
     var body: some View {
         Group {
@@ -67,23 +69,24 @@ struct AnalysisView: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: L.analysisByCategory)
             ForEach(report.categories) { row in
-                BarRow(title: row.category.displayName,
-                       symbolName: row.category.symbolName,
-                       color: Theme.categoryColor(row.category),
-                       fraction: fraction(row.totalTrip, of: maximum),
-                       primaryText: Money.format(row.totalTrip, currencyCode: trip.currency),
-                       secondaryText: trip.currency.uppercased() == Currencies.home
-                           ? nil
-                           : Money.format(row.totalCHF, currencyCode: Currencies.home))
+                VStack(spacing: 4) {
+                    BarRow(title: row.name,
+                           symbolName: row.symbolName,
+                           color: Theme.categoryColor(row.colorIndex),
+                           fraction: fraction(row.totalTrip, of: maximum),
+                           primaryText: Money.format(row.totalTrip, currencyCode: trip.currency),
+                           secondaryText: showsCHF
+                               ? Money.format(row.totalCHF, currencyCode: Currencies.home)
+                               : nil)
 
-                HStack(spacing: 10) {
-                    personChip(.a, amount: row.paidATrip)
-                    personChip(.b, amount: row.paidBTrip)
-                    Spacer()
-                    Text(percentText(row.totalTrip, of: report.tripBalance.total))
-                        .font(.caption2)
-                        .foregroundStyle(Theme.textTertiary)
-                        .monospacedDigit()
+                    HStack {
+                        Text(L.logbookCount(row.count))
+                        Spacer()
+                        Text(percentText(row.totalTrip, of: report.tripBalance.total))
+                            .monospacedDigit()
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textTertiary)
                 }
             }
         }
@@ -95,48 +98,20 @@ struct AnalysisView: View {
         let maximum = report.payers.map(\.totalTrip).max() ?? 1
 
         VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: L.analysisByPayer)
+            SectionHeader(title: L.analysisByPayer,
+                          subtitle: L.analysisByPayerHint)
             ForEach(report.payers) { row in
-                BarRow(title: payerName(row.payer),
-                       symbolName: row.payer == .shared ? "person.2.fill" : "person.fill",
-                       color: payerColor(row.payer),
+                BarRow(title: row.participant.name,
+                       symbolName: "person.fill",
+                       color: Theme.participantColor(row.participant.colorIndex),
                        fraction: fraction(row.totalTrip, of: maximum),
                        primaryText: Money.format(row.totalTrip, currencyCode: trip.currency),
-                       secondaryText: trip.currency.uppercased() == Currencies.home
-                           ? nil
-                           : Money.format(row.totalCHF, currencyCode: Currencies.home))
+                       secondaryText: showsCHF
+                           ? Money.format(row.totalCHF, currencyCode: Currencies.home)
+                           : nil)
             }
         }
         .card()
-    }
-
-    @ViewBuilder
-    private func personChip(_ person: Person, amount: Decimal) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(Theme.personColor(person))
-                .frame(width: 6, height: 6)
-            Text("\(trip.name(for: person)) \(Money.formatPlain(amount))")
-                .font(.caption2)
-                .monospacedDigit()
-                .foregroundStyle(Theme.textSecondary)
-        }
-    }
-
-    private func payerName(_ payer: Payer) -> String {
-        switch payer {
-        case .a: return trip.nameA
-        case .b: return trip.nameB
-        case .shared: return L.payerShared
-        }
-    }
-
-    private func payerColor(_ payer: Payer) -> Color {
-        switch payer {
-        case .a: return Theme.personColor(.a)
-        case .b: return Theme.personColor(.b)
-        case .shared: return Theme.accent
-        }
     }
 
     private func fraction(_ value: Decimal, of maximum: Decimal) -> Double {
@@ -149,16 +124,4 @@ struct AnalysisView: View {
         let percent = NSDecimalNumber(decimal: value / total * 100).doubleValue
         return String(format: "%.0f %%", percent)
     }
-}
-
-#Preview {
-    let controller = PersistenceController.preview
-    let trip = (try? controller.viewContext.fetch(Trip.fetchRequest()))?.first
-    return NavigationStack {
-        if let trip {
-            AnalysisView(trip: trip)
-        }
-    }
-    .environment(\.managedObjectContext, controller.viewContext)
-    .preferredColorScheme(.dark)
 }

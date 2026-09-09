@@ -20,20 +20,23 @@ struct BalanceView: View {
                                  animation: .default)
     }
 
-    private var snapshots: [ExpenseSnapshot] {
-        expenses.map(ExpenseSnapshot.init(expense:))
-    }
-
     private var report: TripReport {
-        SettlementCalculator.report(snapshots: snapshots,
-                                    tripCurrency: trip.currency,
-                                    costSharePercentA: trip.costSharePercentADecimal)
+        SettlementCalculator.report(snapshots: expenses.map(ExpenseSnapshot.init(expense:)),
+                                    participants: trip.participantSnapshots,
+                                    tripCurrency: trip.currency)
     }
 
     var body: some View {
         ScrollView {
             let report = self.report
             VStack(spacing: 16) {
+                if trip.isClosed {
+                    Label(L.settlementClosedNotice, systemImage: "lock.fill")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textSecondary)
+                        .card(padding: 12)
+                }
+
                 settlementCard(report)
                 personCards(report)
                 totalsCard(report)
@@ -57,13 +60,15 @@ struct BalanceView: View {
         .navigationTitle(trip.displayName)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showExpenseEditor = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
+            if trip.isEditable {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showExpenseEditor = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .accessibilityLabel(L.expenseNewTitle)
                 }
-                .accessibilityLabel(L.expenseNewTitle)
             }
         }
         .sheet(isPresented: $showExpenseEditor) {
@@ -81,7 +86,11 @@ struct BalanceView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: L.balanceTitle)
 
-            if report.expenseCount == 0 {
+            if trip.participantSnapshots.isEmpty {
+                Text(L.balanceNoParticipants)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+            } else if report.expenseCount == 0 {
                 Text(L.balanceNoExpenses)
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
@@ -95,25 +104,15 @@ struct BalanceView: View {
                         .foregroundStyle(Theme.textPrimary)
                 }
             } else {
-                let settlement = report.settlementTrip
-                let debtorName = trip.name(for: settlement.debtor ?? .b)
-                let creditorName = trip.name(for: settlement.creditor ?? .a)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L.balanceOwesShort(debtorName, creditorName))
-                        .font(.headline)
-                        .foregroundStyle(Theme.textPrimary)
-
-                    Text(Money.format(settlement.amount, currencyCode: settlement.currencyCode))
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.accent)
-                        .monospacedDigit()
-
-                    if trip.currency.uppercased() != Currencies.home {
-                        Text(Money.format(report.settlementCHF.amount, currencyCode: Currencies.home))
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Theme.textSecondary)
-                            .monospacedDigit()
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(report.settlementTrip.transfers.enumerated()), id: \.element.id) { index, transfer in
+                        TransferRow(transfer: transfer,
+                                    chfAmount: matchingCHFAmount(for: transfer, in: report),
+                                    showCHF: trip.currency.uppercased() != Currencies.home,
+                                    emphasised: index == 0)
+                        if transfer.id != report.settlementTrip.transfers.last?.id {
+                            Divider().overlay(Theme.separator)
+                        }
                     }
                 }
             }
@@ -121,38 +120,47 @@ struct BalanceView: View {
         .card()
     }
 
+    /// Sucht zur Zahlung in Reisewährung den passenden CHF-Betrag.
+    private func matchingCHFAmount(for transfer: Transfer, in report: TripReport) -> Decimal? {
+        report.settlementCHF.transfers
+            .first { $0.from.id == transfer.from.id && $0.to.id == transfer.to.id }?
+            .amount
+    }
+
     @ViewBuilder
     private func personCards(_ report: TripReport) -> some View {
-        HStack(spacing: 12) {
-            personCard(.a, report: report)
-            personCard(.b, report: report)
+        let columns = [GridItem(.adaptive(minimum: 150), spacing: 12)]
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(report.tripBalance.balances) { balance in
+                personCard(balance, report: report)
+            }
         }
     }
 
     @ViewBuilder
-    private func personCard(_ person: Person, report: TripReport) -> some View {
-        let tripBalance = report.tripBalance.balance(for: person)
-        let chfBalance = report.chfBalance.balance(for: person)
+    private func personCard(_ balance: PersonBalance, report: TripReport) -> some View {
         // Wenn zu *allen* Ausgaben der Kurs fehlt, wird gar kein CHF-Wert gezeigt.
         let hasCHF = report.expenseCount == 0 || report.chfBalance.skippedCount < report.expenseCount
+        let chf = report.chfBalance.balance(for: balance.id)
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(Theme.personColor(person))
+                    .fill(Theme.participantColor(balance.participant.colorIndex))
                     .frame(width: 8, height: 8)
-                Text(trip.name(for: person))
+                Text(balance.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(L.balanceNet)
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
-                DualAmountView(tripAmount: tripBalance.net,
+                DualAmountView(tripAmount: balance.net,
                                tripCurrency: trip.currency,
-                               chfAmount: hasCHF ? chfBalance.net : nil,
+                               chfAmount: hasCHF ? chf?.net : nil,
                                alignment: .leading,
                                primaryFont: .title3.weight(.bold),
                                colorise: true)
@@ -162,12 +170,12 @@ struct BalanceView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 LabeledValueRow(label: L.balancePaid) {
-                    Text(Money.format(tripBalance.paid, currencyCode: trip.currency))
+                    Text(Money.format(balance.paid, currencyCode: trip.currency))
                         .font(.caption.weight(.medium))
                         .monospacedDigit()
                 }
                 LabeledValueRow(label: L.balanceShare) {
-                    Text(Money.format(tripBalance.share, currencyCode: trip.currency))
+                    Text(Money.format(balance.share, currencyCode: trip.currency))
                         .font(.caption.weight(.medium))
                         .monospacedDigit()
                 }
@@ -199,14 +207,14 @@ struct BalanceView: View {
     @ViewBuilder
     private var recentExpenses: some View {
         if !expenses.isEmpty {
+            let recent = Array(expenses.prefix(5))
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: L.balanceRecent)
-                ForEach(Array(expenses.prefix(5)), id: \.objectID) { expense in
+                ForEach(recent, id: \.objectID) { expense in
                     ExpenseRow(snapshot: ExpenseSnapshot(expense: expense),
                                tripCurrency: trip.currency,
-                               nameA: trip.nameA,
-                               nameB: trip.nameB)
-                    if expense.objectID != expenses.prefix(5).last?.objectID {
+                               participants: trip.participantSnapshots)
+                    if expense.objectID != recent.last?.objectID {
                         Divider().overlay(Theme.separator)
                     }
                 }
@@ -216,15 +224,46 @@ struct BalanceView: View {
     }
 }
 
-#Preview {
-    let controller = PersistenceController.preview
-    let trip = (try? controller.viewContext.fetch(Trip.fetchRequest()))?.first
-    return NavigationStack {
-        if let trip {
-            BalanceView(trip: trip)
+/// Eine Zeile "X zahlt Y" der Schlussabrechnung.
+struct TransferRow: View {
+    let transfer: Transfer
+    let chfAmount: Decimal?
+    let showCHF: Bool
+    var emphasised = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Theme.participantColor(transfer.from.colorIndex))
+                    .frame(width: 7, height: 7)
+                Text(transfer.from.name)
+                    .lineLimit(1)
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textTertiary)
+                Circle()
+                    .fill(Theme.participantColor(transfer.to.colorIndex))
+                    .frame(width: 7, height: 7)
+                Text(transfer.to.name)
+                    .lineLimit(1)
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Theme.textPrimary)
+
+            Text(Money.format(transfer.amount, currencyCode: transfer.currencyCode))
+                .font(emphasised
+                      ? .system(size: 30, weight: .bold, design: .rounded)
+                      : .title3.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                .monospacedDigit()
+
+            if showCHF, let chfAmount {
+                Text(Money.format(chfAmount, currencyCode: Currencies.home))
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+                    .monospacedDigit()
+            }
         }
     }
-    .environment(\.managedObjectContext, controller.viewContext)
-    .environmentObject(AppState())
-    .preferredColorScheme(.dark)
 }

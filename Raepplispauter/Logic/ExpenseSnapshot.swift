@@ -1,6 +1,32 @@
 import CoreData
 import Foundation
 
+/// Core-Data-freie Momentaufnahme einer Person.
+public struct ParticipantSnapshot: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let name: String
+    /// Anteil an den gemeinsamen Kosten in Prozent.
+    public let costSharePercent: Decimal
+    public let colorIndex: Int
+    public let sortIndex: Int
+
+    public init(id: UUID, name: String, costSharePercent: Decimal, colorIndex: Int = 0, sortIndex: Int = 0) {
+        self.id = id
+        self.name = name
+        self.costSharePercent = costSharePercent
+        self.colorIndex = colorIndex
+        self.sortIndex = sortIndex
+    }
+
+    public init(participant: Participant) {
+        self.init(id: participant.id ?? UUID(),
+                  name: participant.displayName,
+                  costSharePercent: participant.costShareDecimal,
+                  colorIndex: Int(participant.colorIndex),
+                  sortIndex: Int(participant.sortIndex))
+    }
+}
+
 /// Core-Data-freie Momentaufnahme einer Ausgabe.
 ///
 /// Die gesamte Berechnungslogik (Bilanz, Abrechnung, Auswertung, CSV) arbeitet
@@ -25,10 +51,17 @@ public struct ExpenseSnapshot: Identifiable {
     public let rateSource: RateSource
     public let isRateProvisional: Bool
 
-    public let payer: Payer
-    /// Auslage-Anteil Person A in Prozent (nur bei `payer == .shared` relevant).
-    public let splitPercentA: Decimal
-    public let category: ExpenseCategory
+    /// Auslage je Person in Prozent. Bei einem einzelnen Zahler enthält die
+    /// Abbildung genau einen Eintrag mit 100.
+    public let paymentPercentages: [UUID: Decimal]
+    /// Gesetzt, wenn genau eine Person ausgelegt hat.
+    public let singlePayerID: UUID?
+
+    public let categoryID: UUID?
+    public let categoryName: String
+    public let categorySymbol: String
+    public let categoryColorIndex: Int
+
     public let note: String
     public let date: Date
     public let lastEditedBy: String?
@@ -44,9 +77,12 @@ public struct ExpenseSnapshot: Identifiable {
                 rateDate: Date? = nil,
                 rateSource: RateSource = .unknown,
                 isRateProvisional: Bool = false,
-                payer: Payer,
-                splitPercentA: Decimal = 50,
-                category: ExpenseCategory,
+                paymentPercentages: [UUID: Decimal],
+                singlePayerID: UUID? = nil,
+                categoryID: UUID? = nil,
+                categoryName: String = "",
+                categorySymbol: String = "tag.fill",
+                categoryColorIndex: Int = 0,
                 note: String = "",
                 date: Date = Date(),
                 lastEditedBy: String? = nil) {
@@ -61,9 +97,12 @@ public struct ExpenseSnapshot: Identifiable {
         self.rateDate = rateDate
         self.rateSource = rateSource
         self.isRateProvisional = isRateProvisional
-        self.payer = payer
-        self.splitPercentA = splitPercentA
-        self.category = category
+        self.paymentPercentages = paymentPercentages
+        self.singlePayerID = singlePayerID
+        self.categoryID = categoryID
+        self.categoryName = categoryName
+        self.categorySymbol = categorySymbol
+        self.categoryColorIndex = categoryColorIndex
         self.note = note
         self.date = date
         self.lastEditedBy = lastEditedBy
@@ -81,25 +120,22 @@ public struct ExpenseSnapshot: Identifiable {
                   rateDate: expense.rateDate,
                   rateSource: expense.rateSource,
                   isRateProvisional: expense.isRateProvisional,
-                  payer: expense.payer,
-                  splitPercentA: Decimal(expense.splitPercentA),
-                  category: expense.category,
+                  paymentPercentages: expense.paymentPercentages,
+                  singlePayerID: expense.payer?.id,
+                  categoryID: expense.category?.id,
+                  categoryName: expense.categoryName,
+                  categorySymbol: expense.category?.symbol ?? "tag.fill",
+                  categoryColorIndex: Int(expense.category?.colorIndex ?? 0),
                   note: expense.note ?? "",
                   date: expense.date ?? Date(),
                   lastEditedBy: expense.lastEditedBy)
     }
 
-    /// Wer hat wie viel ausgelegt? – abhängig vom Zahler und (bei "Gemeinsam")
-    /// vom Aufteilungsschlüssel.
-    public func paidAmounts(total: Decimal) -> (a: Decimal, b: Decimal) {
-        switch payer {
-        case .a:
-            return (total, 0)
-        case .b:
-            return (0, total)
-        case .shared:
-            let shareA = total * splitPercentA / 100
-            return (shareA, total - shareA)
-        }
+    /// Wer hat wie viel ausgelegt, in Geld statt Prozent.
+    public func paidAmounts(total: Decimal) -> [UUID: Decimal] {
+        paymentPercentages.mapValues { total * $0 / 100 }
     }
+
+    /// Haben mehrere Personen zusammen bezahlt?
+    public var isSplitPayment: Bool { singlePayerID == nil }
 }

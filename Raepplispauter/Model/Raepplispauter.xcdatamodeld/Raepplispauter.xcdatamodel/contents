@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788" systemVersion="25A000" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788" systemVersion="25A000" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="2">
     <!--
+        MODELL v2 – beliebig viele Personen, frei erweiterbare Kategorien.
+
         WICHTIG (CloudKit-Kompatibilität):
         - Jedes Attribut ist entweder optional oder hat einen Default-Wert.
         - Keine Unique-Constraints (von CloudKit nicht unterstützt).
         - Jede Beziehung besitzt eine Inverse.
-        - Löschregel "Cascade" (Deny wäre nicht erlaubt).
+        - Nur "Cascade"/"Nullify" als Löschregel ("Deny" wäre nicht erlaubt).
+
+        Alles hängt am Trip als Wurzelobjekt – dadurch wandert beim
+        CloudKit-Sharing die komplette Reise (Personen, Kategorien, Ausgaben,
+        Zahlungsanteile) in dieselbe geteilte Zone.
     -->
     <entity name="Trip" representedClassName="Trip" syncable="YES">
-        <attribute name="costSharePercentA" optional="NO" attributeType="Double" defaultValueString="50" usesScalarValueType="YES"/>
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="currencyCode" optional="YES" attributeType="String" defaultValueString="EUR"/>
         <attribute name="endDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -16,17 +21,41 @@
         <attribute name="isClosed" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isShared" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="name" optional="YES" attributeType="String"/>
-        <attribute name="personAName" optional="YES" attributeType="String" defaultValueString="Raphi"/>
-        <attribute name="personBName" optional="YES" attributeType="String" defaultValueString="Gini"/>
         <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="categories" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ExpenseCategory" inverseName="trip" inverseEntity="ExpenseCategory"/>
         <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Expense" inverseName="trip" inverseEntity="Expense"/>
+        <relationship name="participants" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Participant" inverseName="trip" inverseEntity="Participant"/>
+    </entity>
+    <entity name="Participant" representedClassName="Participant" syncable="YES">
+        <attribute name="colorIndex" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <!-- Anteil dieser Person an den gemeinsamen Kosten, in Prozent.
+             Die Summe über alle Personen einer Reise ergibt immer genau 100. -->
+        <attribute name="costSharePercent" optional="NO" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="sortIndex" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="paidExpenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Expense" inverseName="payer" inverseEntity="Expense"/>
+        <relationship name="paymentShares" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PaymentShare" inverseName="participant" inverseEntity="PaymentShare"/>
+        <relationship name="trip" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Trip" inverseName="participants" inverseEntity="Trip"/>
+    </entity>
+    <entity name="ExpenseCategory" representedClassName="ExpenseCategory" syncable="YES">
+        <attribute name="colorIndex" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <!-- true = beim Anlegen der Reise mitgeliefert, false = selber erfasst. -->
+        <attribute name="isBuiltIn" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="sortIndex" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="symbolName" optional="YES" attributeType="String" defaultValueString="tag.fill"/>
+        <relationship name="expenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Expense" inverseName="category" inverseEntity="Expense"/>
+        <relationship name="trip" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Trip" inverseName="categories" inverseEntity="Trip"/>
     </entity>
     <entity name="Expense" representedClassName="Expense" syncable="YES">
         <attribute name="amount" optional="YES" attributeType="Decimal" defaultValueString="0"/>
         <attribute name="amountCHF" optional="YES" attributeType="Decimal"/>
         <attribute name="amountTrip" optional="YES" attributeType="Decimal"/>
-        <attribute name="categoryRaw" optional="YES" attributeType="String" defaultValueString="restaurant"/>
         <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="currencyCode" optional="YES" attributeType="String" defaultValueString="EUR"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -34,13 +63,23 @@
         <attribute name="isRateProvisional" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="lastEditedBy" optional="YES" attributeType="String"/>
         <attribute name="note" optional="YES" attributeType="String" defaultValueString=""/>
-        <attribute name="payerRaw" optional="YES" attributeType="String" defaultValueString="A"/>
         <attribute name="rateDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="rateSourceRaw" optional="YES" attributeType="String" defaultValueString="unknown"/>
         <attribute name="rateToCHF" optional="YES" attributeType="Decimal"/>
         <attribute name="rateTripToCHF" optional="YES" attributeType="Decimal"/>
-        <attribute name="splitPercentA" optional="NO" attributeType="Double" defaultValueString="50" usesScalarValueType="YES"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="category" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ExpenseCategory" inverseName="expenses" inverseEntity="ExpenseCategory"/>
+        <!-- Genau eine Person hat ausgelegt. Ist die Beziehung leer, haben
+             mehrere bezahlt – dann gilt die Aufteilung in paymentShares. -->
+        <relationship name="payer" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Participant" inverseName="paidExpenses" inverseEntity="Participant"/>
+        <relationship name="paymentShares" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PaymentShare" inverseName="expense" inverseEntity="PaymentShare"/>
         <relationship name="trip" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Trip" inverseName="expenses" inverseEntity="Trip"/>
+    </entity>
+    <entity name="PaymentShare" representedClassName="PaymentShare" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <!-- Anteil dieser Person an der *Auslage* dieser einen Ausgabe, in Prozent. -->
+        <attribute name="percent" optional="NO" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="expense" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Expense" inverseName="paymentShares" inverseEntity="Expense"/>
+        <relationship name="participant" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Participant" inverseName="paymentShares" inverseEntity="Participant"/>
     </entity>
 </model>

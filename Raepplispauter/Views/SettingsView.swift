@@ -8,7 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
 
     @State private var markupText: String = Money.formatPlain(AppSettings.rateMarkupPercent)
-    @State private var deviceOwner: Person = AppSettings.deviceOwner
+    @State private var deviceLabel: String = AppSettings.deviceLabel
 
     var body: some View {
         Form {
@@ -76,12 +76,10 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.warning)
                 }
 
-                Picker(L.settingsDeviceOwner, selection: $deviceOwner) {
-                    Text(Person.defaultNameA).tag(Person.a)
-                    Text(Person.defaultNameB).tag(Person.b)
-                }
-                .onChange(of: deviceOwner) { _, newValue in
-                    AppSettings.deviceOwner = newValue
+                LabeledContent(L.settingsDeviceLabel) {
+                    TextField(L.settingsDeviceLabelDefault, text: $deviceLabel)
+                        .multilineTextAlignment(.trailing)
+                        .onSubmit { AppSettings.deviceLabel = deviceLabel }
                 }
 
                 NavigationLink {
@@ -101,7 +99,10 @@ struct SettingsView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(L.settingsTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .onDisappear(perform: applyMarkup)
+        .onDisappear {
+            applyMarkup()
+            AppSettings.deviceLabel = deviceLabel
+        }
     }
 
     private func applyMarkup() {

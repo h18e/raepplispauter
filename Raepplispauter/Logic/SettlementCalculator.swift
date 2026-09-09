@@ -1,50 +1,63 @@
 import Foundation
 
-/// Schlussabrechnung: wer schuldet wem wie viel.
-public struct Settlement: Equatable, Sendable {
-    /// `nil`, wenn die Bilanz ausgeglichen ist.
-    public let debtor: Person?
-    public let creditor: Person?
-    /// Immer positiv; in CHF auf 5 Rappen, sonst auf 2 Stellen gerundet.
+/// Eine einzelne Ausgleichszahlung: `from` zahlt `amount` an `to`.
+public struct Transfer: Equatable, Identifiable, Sendable {
+    public let from: ParticipantSnapshot
+    public let to: ParticipantSnapshot
     public let amount: Decimal
     public let currencyCode: String
 
-    public var isBalanced: Bool { debtor == nil || Money.isZero(amount) }
+    public var id: String { "\(from.id)-\(to.id)" }
 
-    public init(debtor: Person?, creditor: Person?, amount: Decimal, currencyCode: String) {
-        self.debtor = debtor
-        self.creditor = creditor
+    public init(from: ParticipantSnapshot, to: ParticipantSnapshot, amount: Decimal, currencyCode: String) {
+        self.from = from
+        self.to = to
         self.amount = amount
+        self.currencyCode = currencyCode
+    }
+}
+
+/// Schlussabrechnung: die Liste der nötigen Zahlungen.
+public struct Settlement: Equatable, Sendable {
+    public let transfers: [Transfer]
+    public let currencyCode: String
+
+    public var isBalanced: Bool { transfers.isEmpty }
+
+    public init(transfers: [Transfer], currencyCode: String) {
+        self.transfers = transfers
         self.currencyCode = currencyCode
     }
 }
 
 /// Eine Zeile der Kategorie-Auswertung.
 public struct CategoryBreakdownRow: Identifiable, Equatable, Sendable {
-    public let category: ExpenseCategory
+    public let categoryID: UUID?
+    public let name: String
+    public let symbolName: String
+    public let colorIndex: Int
     public let count: Int
     public let totalTrip: Decimal
     public let totalCHF: Decimal
-    /// Vom jeweiligen Zahler ausgelegte Beträge (Reisewährung).
-    public let paidATrip: Decimal
-    public let paidBTrip: Decimal
 
-    public var id: String { category.rawValue }
+    public var id: String { categoryID?.uuidString ?? "ohne-\(name)" }
 }
 
 /// Eine Zeile der Zahler-Auswertung.
 public struct PayerBreakdownRow: Identifiable, Equatable, Sendable {
-    public let payer: Payer
+    public let participant: ParticipantSnapshot
+    /// Anzahl Ausgaben, an denen diese Person als Zahlerin beteiligt war.
     public let count: Int
     public let totalTrip: Decimal
     public let totalCHF: Decimal
 
-    public var id: String { payer.rawValue }
+    public var id: UUID { participant.id }
 }
 
-/// Vollständige Auswertung einer Reise – Grundlage für Abrechnungs-Ansicht und CSV.
+/// Vollständige Auswertung einer Reise – Grundlage für Abrechnung und CSV.
 public struct TripReport: Sendable {
     public let tripCurrency: String
+    public let participants: [ParticipantSnapshot]
     public let tripBalance: BalanceResult
     public let chfBalance: BalanceResult
     public let settlementTrip: Settlement
@@ -58,70 +71,133 @@ public struct TripReport: Sendable {
 
 public enum SettlementCalculator {
 
-    /// Leitet aus einer Bilanz die Schuldbeziehung ab.
+    /// Leitet aus einer Bilanz die nötigen Ausgleichszahlungen ab.
+    ///
+    /// Verfahren: Gläubiger (Plus) und Schuldner (Minus) werden nach Betrag
+    /// sortiert und wiederholt gegeneinander verrechnet – jeweils der grösste
+    /// Schuldner gegen den grössten Gläubiger. Das ergibt bei n Personen
+    /// **höchstens n−1 Zahlungen** statt jeder-mit-jedem.
+    ///
+    /// Beträge werden währungsgerecht gerundet (CHF auf 5 Rappen); Restbeträge
+    /// unterhalb der kleinsten Einheit entfallen.
     public static func settlement(from balance: BalanceResult) -> Settlement {
-        let net = balance.netA
-        let rounded = Money.roundForCurrency(abs(net), currencyCode: balance.currencyCode)
+        let currency = balance.currencyCode
 
-        if Money.isZero(rounded) {
-            return Settlement(debtor: nil, creditor: nil, amount: 0, currencyCode: balance.currencyCode)
+        var creditors: [(participant: ParticipantSnapshot, amount: Decimal)] = []
+        var debtors: [(participant: ParticipantSnapshot, amount: Decimal)] = []
+
+        for entry in balance.balances {
+            let net = Money.roundForCurrency(entry.net, currencyCode: currency)
+            if net > 0 {
+                creditors.append((entry.participant, net))
+            } else if net < 0 {
+                debtors.append((entry.participant, -net))
+            }
         }
-        // net > 0  → A hat zu viel ausgelegt → B schuldet A.
-        // net < 0  → B hat zu viel ausgelegt → A schuldet B.
-        return net > 0
-            ? Settlement(debtor: .b, creditor: .a, amount: rounded, currencyCode: balance.currencyCode)
-            : Settlement(debtor: .a, creditor: .b, amount: rounded, currencyCode: balance.currencyCode)
+
+        creditors.sort { $0.amount > $1.amount }
+        debtors.sort { $0.amount > $1.amount }
+
+        var transfers: [Transfer] = []
+        var creditorIndex = 0
+        var debtorIndex = 0
+
+        while creditorIndex < creditors.count && debtorIndex < debtors.count {
+            let amount = min(creditors[creditorIndex].amount, debtors[debtorIndex].amount)
+            let rounded = Money.roundForCurrency(amount, currencyCode: currency)
+
+            if !Money.isZero(rounded) {
+                transfers.append(Transfer(from: debtors[debtorIndex].participant,
+                                          to: creditors[creditorIndex].participant,
+                                          amount: rounded,
+                                          currencyCode: currency))
+            }
+
+            creditors[creditorIndex].amount -= amount
+            debtors[debtorIndex].amount -= amount
+
+            if Money.isZero(creditors[creditorIndex].amount) { creditorIndex += 1 }
+            if Money.isZero(debtors[debtorIndex].amount) { debtorIndex += 1 }
+        }
+
+        return Settlement(transfers: transfers, currencyCode: currency)
     }
 
     /// Erstellt die komplette Auswertung einer Reise.
     public static func report(snapshots: [ExpenseSnapshot],
-                              tripCurrency: String,
-                              costSharePercentA: Decimal) -> TripReport {
+                              participants: [ParticipantSnapshot],
+                              tripCurrency: String) -> TripReport {
         let tripBalance = BalanceCalculator.tripBalance(snapshots: snapshots,
-                                                        tripCurrency: tripCurrency,
-                                                        costSharePercentA: costSharePercentA)
+                                                        participants: participants,
+                                                        tripCurrency: tripCurrency)
         let chfBalance = BalanceCalculator.chfBalance(snapshots: snapshots,
-                                                      costSharePercentA: costSharePercentA)
+                                                      participants: participants)
 
-        var categories: [CategoryBreakdownRow] = []
-        for category in ExpenseCategory.ordered {
-            let matching = snapshots.filter { $0.category == category }
-            guard !matching.isEmpty else { continue }
+        // --- Kategorien ---------------------------------------------------
+        // Reihenfolge nach erstem Auftreten, damit sie der Kategorienliste der
+        // Reise folgt und nicht bei jeder Neuberechnung springt.
+        var categoryOrder: [String] = []
+        var categoryData: [String: (row: CategoryBreakdownRow, key: String)] = [:]
 
-            var totalTrip = Decimal(0)
-            var totalCHF = Decimal(0)
-            var paidATrip = Decimal(0)
-            var paidBTrip = Decimal(0)
-
-            for snapshot in matching {
-                totalTrip += snapshot.amountTrip
-                totalCHF += snapshot.amountCHF ?? 0
-                let paid = snapshot.paidAmounts(total: snapshot.amountTrip)
-                paidATrip += paid.a
-                paidBTrip += paid.b
+        for snapshot in snapshots {
+            let key = snapshot.categoryID?.uuidString ?? "ohne-\(snapshot.categoryName)"
+            if let existing = categoryData[key] {
+                let row = existing.row
+                categoryData[key] = (CategoryBreakdownRow(categoryID: row.categoryID,
+                                                          name: row.name,
+                                                          symbolName: row.symbolName,
+                                                          colorIndex: row.colorIndex,
+                                                          count: row.count + 1,
+                                                          totalTrip: row.totalTrip + snapshot.amountTrip,
+                                                          totalCHF: row.totalCHF + (snapshot.amountCHF ?? 0)),
+                                     key)
+            } else {
+                categoryOrder.append(key)
+                categoryData[key] = (CategoryBreakdownRow(categoryID: snapshot.categoryID,
+                                                          name: snapshot.categoryName,
+                                                          symbolName: snapshot.categorySymbol,
+                                                          colorIndex: snapshot.categoryColorIndex,
+                                                          count: 1,
+                                                          totalTrip: snapshot.amountTrip,
+                                                          totalCHF: snapshot.amountCHF ?? 0),
+                                     key)
             }
-
-            categories.append(CategoryBreakdownRow(category: category,
-                                                   count: matching.count,
-                                                   totalTrip: Money.round(totalTrip, scale: 2),
-                                                   totalCHF: Money.round(totalCHF, scale: 2),
-                                                   paidATrip: Money.round(paidATrip, scale: 2),
-                                                   paidBTrip: Money.round(paidBTrip, scale: 2)))
         }
 
-        var payers: [PayerBreakdownRow] = []
-        for payer in Payer.allCases {
-            let matching = snapshots.filter { $0.payer == payer }
-            guard !matching.isEmpty else { continue }
-            let totalTrip = matching.reduce(Decimal(0)) { $0 + $1.amountTrip }
-            let totalCHF = matching.reduce(Decimal(0)) { $0 + ($1.amountCHF ?? 0) }
-            payers.append(PayerBreakdownRow(payer: payer,
-                                            count: matching.count,
-                                            totalTrip: Money.round(totalTrip, scale: 2),
-                                            totalCHF: Money.round(totalCHF, scale: 2)))
+        let categories = categoryOrder.compactMap { key -> CategoryBreakdownRow? in
+            guard let row = categoryData[key]?.row else { return nil }
+            return CategoryBreakdownRow(categoryID: row.categoryID,
+                                        name: row.name,
+                                        symbolName: row.symbolName,
+                                        colorIndex: row.colorIndex,
+                                        count: row.count,
+                                        totalTrip: Money.round(row.totalTrip, scale: 2),
+                                        totalCHF: Money.round(row.totalCHF, scale: 2))
+        }
+        .sorted { $0.totalTrip > $1.totalTrip }
+
+        // --- Zahler -------------------------------------------------------
+        let payers = participants.compactMap { participant -> PayerBreakdownRow? in
+            var totalTrip = Decimal(0)
+            var totalCHF = Decimal(0)
+            var count = 0
+
+            for snapshot in snapshots {
+                guard let percent = snapshot.paymentPercentages[participant.id], percent > 0 else { continue }
+                count += 1
+                totalTrip += snapshot.amountTrip * percent / 100
+                totalCHF += (snapshot.amountCHF ?? 0) * percent / 100
+            }
+
+            guard count > 0 else { return nil }
+            return PayerBreakdownRow(participant: participant,
+                                     count: count,
+                                     totalTrip: Money.round(totalTrip, scale: 2),
+                                     totalCHF: Money.round(totalCHF, scale: 2))
         }
 
         return TripReport(tripCurrency: tripCurrency,
+                          participants: participants,
                           tripBalance: tripBalance,
                           chfBalance: chfBalance,
                           settlementTrip: settlement(from: tripBalance),

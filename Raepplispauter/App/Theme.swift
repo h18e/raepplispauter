@@ -4,8 +4,7 @@ import SwiftUI
 ///
 /// Gestaltung nach den Apple Human Interface Guidelines mit **Dark Mode als
 /// primärem Erscheinungsbild**: tiefer, fast schwarzer Hintergrund, leicht
-/// aufgehellte Karten, sparsam gesetzte Akzentfarbe. Die App erzwingt via
-/// `.preferredColorScheme(.dark)` das dunkle Erscheinungsbild.
+/// aufgehellte Karten, sparsam gesetzte Akzentfarbe.
 public enum Theme {
 
     // MARK: - Flächen
@@ -40,22 +39,45 @@ public enum Theme {
         return value > 0 ? positive : negative
     }
 
-    /// Wiedererkennbare Farbe pro Person (A/B) – z. B. in der Auswertung.
-    public static func personColor(_ person: Person) -> Color {
-        person == .a
-            ? Color(red: 0.443, green: 0.663, blue: 0.976)
-            : Color(red: 0.878, green: 0.588, blue: 0.925)
+    // MARK: - Paletten
+
+    /// Farben für Personen. Die Reise vergibt sie reihum, damit sich auch bei
+    /// vielen Teilnehmenden benachbarte Einträge gut unterscheiden lassen.
+    private static let participantPalette: [Color] = [
+        Color(red: 0.443, green: 0.663, blue: 0.976),   // Blau
+        Color(red: 0.878, green: 0.588, blue: 0.925),   // Violett
+        Color(red: 0.482, green: 0.827, blue: 0.529),   // Grün
+        Color(red: 0.976, green: 0.643, blue: 0.376),   // Orange
+        Color(red: 0.361, green: 0.792, blue: 0.827),   // Türkis
+        Color(red: 0.929, green: 0.510, blue: 0.522),   // Rot
+        Color(red: 0.596, green: 0.612, blue: 0.949),   // Indigo
+        Color(red: 0.902, green: 0.796, blue: 0.404)    // Gelb
+    ]
+
+    private static let categoryPalette: [Color] = [
+        Color(red: 0.443, green: 0.663, blue: 0.976),
+        Color(red: 0.976, green: 0.643, blue: 0.376),
+        Color(red: 0.482, green: 0.827, blue: 0.529),
+        Color(red: 0.596, green: 0.612, blue: 0.949),
+        Color(red: 0.929, green: 0.510, blue: 0.522),
+        Color(red: 0.361, green: 0.792, blue: 0.827),
+        Color(red: 0.878, green: 0.588, blue: 0.925),
+        Color(red: 0.902, green: 0.796, blue: 0.404)
+    ]
+
+    public static var participantPaletteSize: Int { participantPalette.count }
+    public static var categoryPaletteSize: Int { categoryPalette.count }
+
+    public static func participantColor(_ index: Int) -> Color {
+        guard !participantPalette.isEmpty else { return accent }
+        let safe = ((index % participantPalette.count) + participantPalette.count) % participantPalette.count
+        return participantPalette[safe]
     }
 
-    public static func categoryColor(_ category: ExpenseCategory) -> Color {
-        switch category {
-        case .unterkunft: return Color(red: 0.443, green: 0.663, blue: 0.976)
-        case .restaurant: return Color(red: 0.976, green: 0.643, blue: 0.376)
-        case .lebensmittel: return Color(red: 0.482, green: 0.827, blue: 0.529)
-        case .oev: return Color(red: 0.596, green: 0.612, blue: 0.949)
-        case .auto: return Color(red: 0.929, green: 0.510, blue: 0.522)
-        case .sightseeing: return Color(red: 0.361, green: 0.792, blue: 0.827)
-        }
+    public static func categoryColor(_ index: Int) -> Color {
+        guard !categoryPalette.isEmpty else { return accent }
+        let safe = ((index % categoryPalette.count) + categoryPalette.count) % categoryPalette.count
+        return categoryPalette[safe]
     }
 }
 

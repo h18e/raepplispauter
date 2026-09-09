@@ -78,10 +78,19 @@ public final class PersistenceController {
 
         var result = Self.loadContainer(mode: wanted, inMemory: inMemory)
         var fellBack = false
+        var didResetStore = false
 
-        // Sicherheitsnetz: CloudKit gewünscht, aber nicht verfügbar (fehlendes
-        // Entitlement bei gratis Apple-ID, kein iCloud-Account, kein Container).
-        // Statt die App scheitern zu lassen, wird lokal weitergemacht.
+        // 1. Modell geändert, keine Migration hinterlegt → lokalen Speicher neu
+        //    aufbauen. Nur vor der Veröffentlichung erlaubt.
+        if result.error != nil, !inMemory, AppConfiguration.resetStoreOnIncompatibleModel {
+            Self.destroyStores()
+            result = Self.loadContainer(mode: wanted, inMemory: inMemory)
+            didResetStore = result.error == nil
+        }
+
+        // 2. Sicherheitsnetz: CloudKit gewünscht, aber nicht verfügbar (fehlendes
+        //    Entitlement bei gratis Apple-ID, kein iCloud-Account, kein Container).
+        //    Statt die App scheitern zu lassen, wird lokal weitergemacht.
         if result.error != nil, wanted == .cloudKit, AppConfiguration.allowsAutomaticLocalFallback {
             result = Self.loadContainer(mode: .localOnly, inMemory: inMemory)
             fellBack = true
@@ -112,6 +121,12 @@ public final class PersistenceController {
 
         if !inMemory {
             conflictAuditor.start(container: container, syncMode: syncMode)
+            if didResetStore {
+                conflictAuditor.log(.init(date: Date(),
+                                          author: AppSettings.transactionAuthor,
+                                          kind: .info,
+                                          detail: L.syncLogStoreReset))
+            }
             if fellBack {
                 conflictAuditor.log(.init(date: Date(),
                                           author: AppSettings.transactionAuthor,
@@ -189,7 +204,7 @@ public final class PersistenceController {
         }
 
         // Bei einem Fehlschlag alle bereits geöffneten Stores wieder schliessen,
-        // damit der Fallback-Container dieselbe Datei sauber öffnen kann.
+        // damit ein weiterer Versuch dieselbe Datei sauber öffnen kann.
         if failure != nil {
             for store in container.persistentStoreCoordinator.persistentStores {
                 try? container.persistentStoreCoordinator.remove(store)
@@ -197,6 +212,26 @@ public final class PersistenceController {
         }
 
         return LoadResult(container: container, mode: mode, error: failure)
+    }
+
+    /// Löscht die lokalen Store-Dateien.
+    ///
+    /// Wird genau dann gebraucht, wenn sich das Datenmodell geändert hat und
+    /// keine Migration hinterlegt ist – vor der Veröffentlichung ein normaler
+    /// Entwicklungsschritt, danach nie mehr (siehe
+    /// `AppConfiguration.resetStoreOnIncompatibleModel`).
+    ///
+    /// In iCloud liegende Daten sind davon **nicht** betroffen; beim nächsten
+    /// Start lädt CloudKit sie wieder herunter.
+    private static func destroyStores() {
+        let baseURL = NSPersistentContainer.defaultDirectoryURL()
+        let manager = FileManager.default
+        for name in [privateStoreName, sharedStoreName] {
+            for suffix in ["", "-wal", "-shm"] {
+                let url = baseURL.appendingPathComponent(name + suffix)
+                try? manager.removeItem(at: url)
+            }
+        }
     }
 
     /// Vorschau-/Testcontainer mit Beispieldaten.
@@ -208,20 +243,41 @@ public final class PersistenceController {
                                startDate: Date().addingTimeInterval(-6 * 86_400),
                                endDate: Date().addingTimeInterval(4 * 86_400),
                                currencyCode: "EUR")
-        let samples: [(Decimal, ExpenseCategory, Payer, String)] = [
-            (120, .unterkunft, .a, "Agriturismo"),
-            (48.5, .restaurant, .b, "Znacht Trattoria"),
-            (23.9, .lebensmittel, .shared, "Märit"),
-            (14, .oev, .a, "Zug Florenz"),
-            (62, .auto, .b, "Tanke"),
-            (36, .sightseeing, .a, "Uffizien")
+        let people = ["Anna", "Beat", "Cem"]
+        let shares = SplitCalculator.equalShares(count: people.count)
+        for (index, name) in people.enumerated() {
+            Participant.create(in: context, trip: trip, name: name, costSharePercent: shares[index])
+        }
+        let participants = trip.participantList
+        let categories = trip.categoryList
+
+        // (Betrag, Kategorie-Index, Zahler-Index oder nil für "gmeinsam", Zweck)
+        let samples: [(Decimal, Int, Int?, String)] = [
+            (120, 0, 0, "Agriturismo"),
+            (48.5, 1, 1, "Znacht Trattoria"),
+            (23.9, 2, nil, "Märit"),
+            (14, 3, 2, "Zug Florenz"),
+            (62, 4, 1, "Tanke"),
+            (36, 5, 0, "Uffizien")
         ]
         for (index, sample) in samples.enumerated() {
             let expense = Expense.create(in: context, trip: trip)
             expense.date = Date().addingTimeInterval(Double(-index) * 43_200)
-            expense.category = sample.1
-            expense.payer = sample.2
+            expense.category = categories.indices.contains(sample.1) ? categories[sample.1] : categories.first
             expense.note = sample.3
+
+            if let payerIndex = sample.2, participants.indices.contains(payerIndex) {
+                expense.payer = participants[payerIndex]
+            } else {
+                var split: [UUID: Double] = [:]
+                for (position, participant) in participants.enumerated() {
+                    if let id = participant.id, shares.indices.contains(position) {
+                        split[id] = shares[position]
+                    }
+                }
+                expense.setPayment(singlePayer: nil, shares: split, in: context)
+            }
+
             expense.applyConversion(CurrencyConversion(originalAmount: sample.0,
                                                        originalCurrency: "EUR",
                                                        tripCurrency: "EUR",

@@ -23,6 +23,17 @@
         }
       }
     },
+    "analysis.byPayerHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wär het wie viel usgleit"
+          }
+        }
+      }
+    },
     "analysis.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -144,6 +155,17 @@
         }
       }
     },
+    "balance.noParticipants": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für die Reis si no kei Persone erfasst."
+          }
+        }
+      }
+    },
     "balance.noTrip": {
       "extractionState": "manual",
       "localizations": {
@@ -162,28 +184,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Legg zerscht e Reis a, de chasch drufabe Uusgabe erfasse."
-          }
-        }
-      }
-    },
-    "balance.owes": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ schuldet %@ %@"
-          }
-        }
-      }
-    },
-    "balance.owesShort": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ schuldet %@"
           }
         }
       }
@@ -254,6 +254,39 @@
         }
       }
     },
+    "categories.deleteHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Lösche nach links wüsche. Kategorie, wo scho bruucht wärde, chöi nid glöscht wärde."
+          }
+        }
+      }
+    },
+    "categories.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D Kategorie ghöre zur Reis und wärde mit em Teile automatisch mitgnoh."
+          }
+        }
+      }
+    },
+    "categories.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kategorie"
+          }
+        }
+      }
+    },
     "category.auto": {
       "extractionState": "manual",
       "localizations": {
@@ -265,6 +298,39 @@
         }
       }
     },
+    "category.color": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farb"
+          }
+        }
+      }
+    },
+    "category.deleteBlocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Kategorie wärde no bruucht und chöi drum nid glöscht wärde: %@"
+          }
+        }
+      }
+    },
+    "category.edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kategorie bearbeite"
+          }
+        }
+      }
+    },
     "category.lebensmittel": {
       "extractionState": "manual",
       "localizations": {
@@ -272,6 +338,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Läbesmittel"
+          }
+        }
+      }
+    },
+    "category.name": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "category.namePlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "z. B. Souvenir"
+          }
+        }
+      }
+    },
+    "category.needsOne": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S muess mindestens ei Kategorie blybe."
+          }
+        }
+      }
+    },
+    "category.new": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nöii Kategorie"
           }
         }
       }
@@ -305,6 +415,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sightseeing"
+          }
+        }
+      }
+    },
+    "category.symbol": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol"
+          }
+        }
+      }
+    },
+    "category.unnamed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohni Kategorie"
           }
         }
       }
@@ -485,6 +617,17 @@
         }
       }
     },
+    "csv.colCostShare": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choschteaateil (%)"
+          }
+        }
+      }
+    },
     "csv.colCount": {
       "extractionState": "manual",
       "localizations": {
@@ -518,18 +661,62 @@
         }
       }
     },
-    "csv.colItem": {
+    "csv.colFrom": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Position"
+            "value": "Vo"
+          }
+        }
+      }
+    },
+    "csv.colNetCHF": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saldo CHF"
+          }
+        }
+      }
+    },
+    "csv.colNetTrip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saldo %@"
           }
         }
       }
     },
     "csv.colPaidBy": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usgleit %@"
+          }
+        }
+      }
+    },
+    "csv.colPaidCHF": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usgleit CHF"
+          }
+        }
+      }
+    },
+    "csv.colPaidTrip": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -547,6 +734,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zahler"
+          }
+        }
+      }
+    },
+    "csv.colPerson": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person"
           }
         }
       }
@@ -595,13 +793,24 @@
         }
       }
     },
-    "csv.colSplitA": {
+    "csv.colShareCHF": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aateil A (%)"
+            "value": "Choschteaateil CHF"
+          }
+        }
+      }
+    },
+    "csv.colShareTrip": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choschteaateil %@"
           }
         }
       }
@@ -613,6 +822,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zyt"
+          }
+        }
+      }
+    },
+    "csv.colTo": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A"
           }
         }
       }
@@ -635,6 +855,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exportiert am"
+          }
+        }
+      }
+    },
+    "csv.headerParticipants": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persone"
           }
         }
       }
@@ -672,46 +903,13 @@
         }
       }
     },
-    "csv.rowNet": {
+    "csv.sectionBalance": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saldo %@"
-          }
-        }
-      }
-    },
-    "csv.rowPaid": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usgleit %@"
-          }
-        }
-      }
-    },
-    "csv.rowSettlement": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schlussabrächnig"
-          }
-        }
-      }
-    },
-    "csv.rowShare": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choschteaateil %@"
+            "value": "Bilanz pro Person"
           }
         }
       }
@@ -991,35 +1189,13 @@
         }
       }
     },
-    "expense.readOnly": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du chasch die Reis nume aaluege, nid bearbeite."
-          }
-        }
-      }
-    },
-    "expense.split": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ufteilig vo dr Uslag"
-          }
-        }
-      }
-    },
     "expense.splitHint": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wär het wie viel usgleit? Standard isch halb/halb."
+            "value": "Wär het wie viel usgleit? D Summe isch immer 100 % – verschiebsch eine, passe sich di andere a."
           }
         }
       }
@@ -1031,6 +1207,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Betrag"
+          }
+        }
+      }
+    },
+    "field.appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Darstellig"
+          }
+        }
+      }
+    },
+    "field.categories": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kategorie"
           }
         }
       }
@@ -1101,6 +1299,17 @@
         }
       }
     },
+    "field.participants": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persone"
+          }
+        }
+      }
+    },
     "field.payer": {
       "extractionState": "manual",
       "localizations": {
@@ -1119,17 +1328,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zytruum"
-          }
-        }
-      }
-    },
-    "field.split": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ufteilig"
           }
         }
       }
@@ -1288,6 +1486,72 @@
         }
       }
     },
+    "participant.add": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person zuefüege"
+          }
+        }
+      }
+    },
+    "participant.deleteBlocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Persone hei scho Uusgabe und chöi drum nid glöscht wärde: %@"
+          }
+        }
+      }
+    },
+    "participant.namePlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "participant.needsOne": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S bruucht mindestens ei Person mit eme Name."
+          }
+        }
+      }
+    },
+    "participant.placeholderNumbered": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person %@"
+          }
+        }
+      }
+    },
+    "participant.unnamed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohni Name"
+          }
+        }
+      }
+    },
     "payer.question": {
       "extractionState": "manual",
       "localizations": {
@@ -1387,13 +1651,24 @@
         }
       }
     },
-    "settings.deviceOwner": {
+    "settings.deviceLabel": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wär bisch du uf däm Grät?"
+            "value": "Name vo däm Grät"
+          }
+        }
+      }
+    },
+    "settings.deviceLabelDefault": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mys iPhone"
           }
         }
       }
@@ -1559,6 +1834,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alles usglyche"
+          }
+        }
+      }
+    },
+    "settlement.closeConfirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reis abschlüsse? Drufabe chasch kei Uusgabe meh erfasse, ändere oder lösche."
           }
         }
       }
@@ -1827,6 +2113,28 @@
         }
       }
     },
+    "split.equalise": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glychmässig"
+          }
+        }
+      }
+    },
+    "split.total": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        }
+      }
+    },
     "syncLog.authorCloud": {
       "extractionState": "manual",
       "localizations": {
@@ -1933,6 +2241,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "App im Lokalmodus gstartet – kei iCloud."
+          }
+        }
+      }
+    },
+    "syncLog.storeReset": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S Datemodäll het gänderet – dr lokal Spycher isch nöi ufboue worde."
           }
         }
       }
@@ -2069,6 +2388,28 @@
         }
       }
     },
+    "trip.closedBlocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Reis isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache."
+          }
+        }
+      }
+    },
+    "trip.closedHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bi ere abgschlossene Reis chasch kei Uusgabe meh erfasse, ändere oder lösche."
+          }
+        }
+      }
+    },
     "trip.costShare": {
       "extractionState": "manual",
       "localizations": {
@@ -2086,7 +2427,18 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wär trait wie viel vo de gmeinsame Choschte? Standard isch halb/halb."
+            "value": "Wär trait wie viel vo de gmeinsame Choschte? D Summe isch immer genau 100 % – wenn du eine verschiebsch, passe sich di andere automatisch a."
+          }
+        }
+      }
+    },
+    "trip.costShareSingle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit nume einere Person trait die logischerwys 100 %."
           }
         }
       }
@@ -2179,6 +2531,17 @@
         }
       }
     },
+    "trip.participantCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Persone"
+          }
+        }
+      }
+    },
     "trip.people": {
       "extractionState": "manual",
       "localizations": {
@@ -2190,6 +2553,17 @@
         }
       }
     },
+    "trip.peopleHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So viel Persone wie du wottsch. Zum Lösche nach links wüsche – Persone mit Uusgabe blybe gschützt."
+          }
+        }
+      }
+    },
     "trip.period": {
       "extractionState": "manual",
       "localizations": {
@@ -2197,28 +2571,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zytruum"
-          }
-        }
-      }
-    },
-    "trip.personA": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Person A"
-          }
-        }
-      }
-    },
-    "trip.personB": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Person B"
           }
         }
       }

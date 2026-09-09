@@ -23,5 +23,23 @@
 	<!-- Dark Mode ist das primäre Erscheinungsbild der App. -->
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
+
+	<!--
+		Export-Compliance: Die App verwendet ausschliesslich die Verschlüsselung,
+		die Apple selbst mitbringt (HTTPS für den EZB-Kursabruf, CloudKit-Transport).
+		Damit gilt sie als ausgenommen; ohne diesen Schlüssel fragt App Store
+		Connect bei jedem Build danach.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!--
+		Bewusst NICHT gesetzt: NSAppTransportSecurity.
+		Alle Netzzugriffe laufen über HTTPS (www.ecb.europa.eu), es braucht also
+		keine ATS-Ausnahme. Ausnahmen wären im App-Review begründungspflichtig.
+
+		Ebenfalls bewusst nicht gesetzt: Berechtigungen für Kamera, Kontakte,
+		Standort, Fotos oder Mikrofon. Die App braucht keine davon.
+	-->
 </dict>
 </plist>

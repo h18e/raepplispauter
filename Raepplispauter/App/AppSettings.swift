@@ -1,14 +1,17 @@
 import Foundation
-import UIKit
 
 /// Geräteweite Einstellungen (bewusst **nicht** synchronisiert – sie sind lokal).
+///
+/// Datenschutz: Hier landen ausschliesslich Bedienvorlieben, keine Personendaten
+/// und keine Kennungen, die an Dritte gingen. Alles bleibt in `UserDefaults` auf
+/// dem Gerät (siehe `PrivacyInfo.xcprivacy`).
 public enum AppSettings {
 
     private enum Key {
         static let rateMarkup = "rateMarkupPercent"
         static let lastRateRefresh = "lastRateRefresh"
         static let selectedTripID = "selectedTripID"
-        static let deviceOwner = "deviceOwnerRole"
+        static let deviceLabel = "deviceLabel"
     }
 
     private static var defaults: UserDefaults { .standard }
@@ -36,15 +39,24 @@ public enum AppSettings {
         set { defaults.set(newValue, forKey: Key.selectedTripID) }
     }
 
-    /// Wer sitzt an diesem Gerät? Steuert nur Vorbelegungen (z. B. Zahler-Vorschlag)
-    /// und die Beschriftung "du" – nicht die Berechnung.
-    public static var deviceOwner: Person {
-        get { Person(rawValue: defaults.string(forKey: Key.deviceOwner) ?? "") ?? .a }
-        set { defaults.set(newValue.rawValue, forKey: Key.deviceOwner) }
+    /// Frei wählbare Bezeichnung dieses Geräts. Sie erscheint im Sync-Protokoll,
+    /// damit man Änderungen zuordnen kann ("Ändere vo Raphis iPhone").
+    ///
+    /// Bewusst **selbst gesetzt** statt aus `UIDevice.current.name` gelesen:
+    /// Letzterer liefert seit iOS 16 ohnehin nur noch den Modellnamen, und ein
+    /// frei gewählter Text ist datenschutzfreundlicher.
+    public static var deviceLabel: String {
+        get {
+            let stored = (defaults.string(forKey: Key.deviceLabel) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return stored.isEmpty ? L.settingsDeviceLabelDefault : stored
+        }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            defaults.set(trimmed, forKey: Key.deviceLabel)
+        }
     }
 
-    /// Autor-Kennung für Core-Data-Transaktionen und das Konflikt-Protokoll.
-    public static var transactionAuthor: String {
-        UIDevice.current.name
-    }
+    /// Autor-Kennung für Core-Data-Transaktionen und das Sync-Protokoll.
+    public static var transactionAuthor: String { deviceLabel }
 }
