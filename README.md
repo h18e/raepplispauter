@@ -289,8 +289,18 @@ Alle UI-Texte stehen in `Raepplispauter/Resources/Strings.swift`. Nach einer
 Änderung den String-Katalog nachführen:
 
 ```bash
-cd Raepplispauter && python3 Tools/generate-xcstrings.py
+python3 Tools/generate-xcstrings.py
 ```
+
+Das Skript liest die Parametertypen aus den Swift-Signaturen und setzt den
+passenden Platzhalter (`Int` → `%lld`, `String` → `%@`). Lässt sich ein
+Platzhalter nicht zuordnen, bricht es ab, statt zu raten – ein falscher
+Platzhalter führt zur Laufzeit zum Absturz, weil Foundation eine Zahl sonst
+als Zeiger liest.
+
+> **Hinweis:** `SWIFT_EMIT_LOC_STRINGS` steht bewusst auf `NO`. Sonst schreibt
+> Xcode bei jedem Bauen selbst in `Localizable.xcstrings` und der Katalog
+> kollidiert bei jedem `git pull`.
 
 ---
 

@@ -51,7 +51,11 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
-        SWIFT_EMIT_LOC_STRINGS: YES
+        # Bewusst NO: Sonst schreibt Xcode bei jedem Bauen selbst in
+        # Localizable.xcstrings und kollidiert mit Tools/generate-xcstrings.py,
+        # das den Katalog aus Strings.swift erzeugt. Die App braucht die
+        # Extraktion nicht – jeder Text hat im Code seinen defaultValue.
+        SWIFT_EMIT_LOC_STRINGS: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         # DEVELOPMENT_TEAM hier eintragen oder in Xcode unter "Signing & Capabilities" wählen.
         DEVELOPMENT_TEAM: ""
