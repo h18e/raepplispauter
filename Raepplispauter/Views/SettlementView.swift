@@ -9,6 +9,7 @@ struct SettlementView: View {
     @ObservedObject var trip: Trip
 
     @Environment(\.managedObjectContext) private var context
+    @EnvironmentObject private var appState: AppState
 
     @FetchRequest private var expenses: FetchedResults<Expense>
 
@@ -96,7 +97,8 @@ struct SettlementView: View {
                     TransferRow(transfer: transfer,
                                 chfAmount: matchingCHFAmount(for: transfer, in: report),
                                 showCHF: showsCHF,
-                                emphasised: index == 0)
+                                emphasised: index == 0,
+                                myParticipantID: appState.myParticipantID(in: trip))
                     if transfer.id != report.settlementTrip.transfers.last?.id {
                         Divider().overlay(Theme.separator)
                     }

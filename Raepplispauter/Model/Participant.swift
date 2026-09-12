@@ -54,13 +54,17 @@ public final class Participant: NSManagedObject, Identifiable {
         return false
     }
 
+    /// - Parameter id: Lässt sich vorgeben, damit eine im Editor vorbereitete
+    ///   Person nach dem Speichern dieselbe Kennung behält (wichtig für die
+    ///   Zuordnung "das bin ich").
     @discardableResult
     public static func create(in context: NSManagedObjectContext,
                               trip: Trip,
                               name: String,
-                              costSharePercent: Double = 0) -> Participant {
+                              costSharePercent: Double = 0,
+                              id: UUID = UUID()) -> Participant {
         let participant = Participant(context: context)
-        participant.id = UUID()
+        participant.id = id
         participant.name = name
         participant.costSharePercent = costSharePercent
         participant.sortIndex = Int16(trip.participantList.count)

@@ -83,6 +83,23 @@ public enum L {
                defaultValue: "Die Persone hei scho Uusgabe und chöi drum nid glöscht wärde: \(names)")
     }
 
+    // MARK: - "Das bin ich"
+
+    public static let identityTitle = t("identity.title", "Wär bisch du?")
+    public static let identityQuestion = t("identity.question", "Das bin ich")
+    public static let identityNotSet = t("identity.notSet", "Nid gwählt")
+    public static let identityHint = t("identity.hint",
+                                       "Wenn d App weiss, wär a däm Grät sitzt, zeigt si dir d Abrächnig us dyner Sicht und schlaht di als Zahler vor. D Uswahl blybt nume uf däm Grät.")
+    public static let identityYouBadge = t("identity.youBadge", "du")
+
+    public static func identityYouPay(_ name: String) -> String {
+        String(localized: "identity.youPay", defaultValue: "Du zahlsch \(name)")
+    }
+
+    public static func identityYouReceive(_ name: String) -> String {
+        String(localized: "identity.youReceive", defaultValue: "\(name) zahlt dir")
+    }
+
     // MARK: - Zahler und Ufteilig
 
     public static let payerShared = t("payer.shared", "Gmeinsam")
@@ -224,11 +241,12 @@ public enum L {
     public static let sharingInvite = t("sharing.invite", "Mit em Partner teile")
     public static let sharingManage = t("sharing.manage", "Teilnehmer verwalte")
     public static let sharingStop = t("sharing.stop", "Teile beände")
+    public static let sharingSendLink = t("sharing.sendLink", "Iiladigs-Link verschicke")
     public static let sharingSharedWith = t("sharing.sharedWith", "Teilt mit")
     public static let sharingNotShared = t("sharing.notShared", "No nid teilt")
     public static let sharingShared = t("sharing.shared", "Teilt")
     public static let sharingHint = t("sharing.hint",
-                                      "D Reis wird über iCloud teilt. Dyn Partner überchunnt e Iiladig und gseht drufabe genau di gliiche Date – ou mit em eigete Apple-Account.")
+                                      "D Reis wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account.")
     public static let sharingOnlyOwner = t("sharing.onlyOwner", "Nume wär d Reis aagleit het, cha si teile.")
     public static let sharingUnknownParticipant = t("sharing.unknownParticipant", "Unbekannte Teilnehmer")
     public static let sharingNoSharedStore = t("sharing.noSharedStore", "Dr geteilti Spycher isch nid bereit.")

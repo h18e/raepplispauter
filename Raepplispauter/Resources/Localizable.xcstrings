@@ -1343,6 +1343,83 @@
         }
       }
     },
+    "identity.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn d App weiss, wär a däm Grät sitzt, zeigt si dir d Abrächnig us dyner Sicht und schlaht di als Zahler vor. D Uswahl blybt nume uf däm Grät."
+          }
+        }
+      }
+    },
+    "identity.notSet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nid gwählt"
+          }
+        }
+      }
+    },
+    "identity.question": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das bin ich"
+          }
+        }
+      }
+    },
+    "identity.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wär bisch du?"
+          }
+        }
+      }
+    },
+    "identity.youBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "du"
+          }
+        }
+      }
+    },
+    "identity.youPay": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du zahlsch %@"
+          }
+        }
+      }
+    },
+    "identity.youReceive": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ zahlt dir"
+          }
+        }
+      }
+    },
     "logbook.allCategories": {
       "extractionState": "manual",
       "localizations": {
@@ -1976,7 +2053,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "D Reis wird über iCloud teilt. Dyn Partner überchunnt e Iiladig und gseht drufabe genau di gliiche Date – ou mit em eigete Apple-Account."
+            "value": "D Reis wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account."
           }
         }
       }
@@ -2065,6 +2142,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Teile"
+          }
+        }
+      }
+    },
+    "sharing.sendLink": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iiladigs-Link verschicke"
           }
         }
       }

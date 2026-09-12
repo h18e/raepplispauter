@@ -21,8 +21,15 @@ struct CloudSharingSheet: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UICloudSharingController {
         let controller = UICloudSharingController(share: share, container: container)
         controller.delegate = context.coordinator
-        // Beide dürfen erfassen und bearbeiten; nur eingeladene Personen haben Zugriff.
-        controller.availablePermissions = [.allowReadWrite, .allowPrivate]
+        // Alle Mitreisenden dürfen erfassen und bearbeiten (`allowReadWrite`).
+        //
+        // Bei der Reichweite hat die Person die Wahl:
+        // * `allowPrivate` – nur namentlich eingeladene Apple-Accounts
+        // * `allowPublic`  – jede Person, die den Link hat, kann beitreten
+        //
+        // Letzteres ist im Ferienalltag meist das Praktischere: Link per
+        // Nachricht in die Gruppe, fertig – ohne vorher jede Apple-ID zu kennen.
+        controller.availablePermissions = [.allowReadWrite, .allowPrivate, .allowPublic]
         controller.modalPresentationStyle = .formSheet
         return controller
     }

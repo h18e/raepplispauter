@@ -12,6 +12,8 @@ public enum AppSettings {
         static let lastRateRefresh = "lastRateRefresh"
         static let selectedTripID = "selectedTripID"
         static let deviceLabel = "deviceLabel"
+        /// Präfix für "wär bin ich" – je Reise ein eigener Eintrag.
+        static let myParticipantPrefix = "myParticipant."
     }
 
     private static var defaults: UserDefaults { .standard }
@@ -59,4 +61,28 @@ public enum AppSettings {
 
     /// Autor-Kennung für Core-Data-Transaktionen und das Sync-Protokoll.
     public static var transactionAuthor: String { deviceLabel }
+
+    // MARK: - "Das bin ich"
+
+    /// Welche Person der Reise sitzt an diesem Gerät?
+    ///
+    /// Bewusst **gerätelokal** und nicht im Datenmodell:
+    /// * Die Antwort ist auf jedem Gerät eine andere – im geteilten Datensatz
+    ///   hätte sie gar keinen eindeutigen Wert.
+    /// * Es braucht dafür keine CloudKit-Schemaänderung; die Zuordnung lässt
+    ///   sich also auch nach der Veröffentlichung noch weiterentwickeln.
+    /// * Es wird keine iCloud-Kennung gespeichert, nur eine App-interne UUID.
+    public static func myParticipantID(forTrip tripID: UUID) -> UUID? {
+        guard let raw = defaults.string(forKey: Key.myParticipantPrefix + tripID.uuidString) else { return nil }
+        return UUID(uuidString: raw)
+    }
+
+    public static func setMyParticipantID(_ participantID: UUID?, forTrip tripID: UUID) {
+        let key = Key.myParticipantPrefix + tripID.uuidString
+        if let participantID {
+            defaults.set(participantID.uuidString, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }

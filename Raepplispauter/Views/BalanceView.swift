@@ -37,6 +37,10 @@ struct BalanceView: View {
                         .card(padding: 12)
                 }
 
+                if appState.needsIdentityChoice(in: trip) {
+                    identityPrompt
+                }
+
                 settlementCard(report)
                 personCards(report)
                 totalsCard(report)
@@ -81,6 +85,43 @@ struct BalanceView: View {
 
     // MARK: - Bausteine
 
+    /// Einmalige Frage, wer an diesem Gerät sitzt. Danach zeigt die Bilanz die
+    /// Zahlungen aus der eigenen Sicht ("Du chunnsch … übercho").
+    @ViewBuilder
+    private var identityPrompt: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: L.identityTitle, subtitle: L.identityHint)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+                ForEach(trip.participantSnapshots) { participant in
+                    Button {
+                        withAnimation {
+                            appState.setMyParticipantID(participant.id, in: trip)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Theme.participantColor(participant.colorIndex))
+                                .frame(width: 8, height: 8)
+                            Text(participant.name)
+                                .font(.subheadline.weight(.medium))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.white.opacity(0.06))
+                        )
+                        .foregroundStyle(Theme.textPrimary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .card()
+    }
+
     @ViewBuilder
     private func settlementCard(_ report: TripReport) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -104,13 +145,15 @@ struct BalanceView: View {
                         .foregroundStyle(Theme.textPrimary)
                 }
             } else {
+                let ordered = orderedTransfers(report)
                 VStack(alignment: .leading, spacing: 12) {
-                    ForEach(Array(report.settlementTrip.transfers.enumerated()), id: \.element.id) { index, transfer in
+                    ForEach(Array(ordered.enumerated()), id: \.element.id) { index, transfer in
                         TransferRow(transfer: transfer,
                                     chfAmount: matchingCHFAmount(for: transfer, in: report),
                                     showCHF: trip.currency.uppercased() != Currencies.home,
-                                    emphasised: index == 0)
-                        if transfer.id != report.settlementTrip.transfers.last?.id {
+                                    emphasised: index == 0,
+                                    myParticipantID: appState.myParticipantID(in: trip))
+                        if transfer.id != ordered.last?.id {
                             Divider().overlay(Theme.separator)
                         }
                     }
@@ -118,6 +161,16 @@ struct BalanceView: View {
             }
         }
         .card()
+    }
+
+    /// Zahlungen, die einen selbst betreffen, stehen zuoberst – das ist die
+    /// Information, für die man die App überhaupt aufmacht.
+    private func orderedTransfers(_ report: TripReport) -> [Transfer] {
+        let transfers = report.settlementTrip.transfers
+        guard let me = appState.myParticipantID(in: trip) else { return transfers }
+        let mine = transfers.filter { $0.from.id == me || $0.to.id == me }
+        let others = transfers.filter { $0.from.id != me && $0.to.id != me }
+        return mine + others
     }
 
     /// Sucht zur Zahlung in Reisewährung den passenden CHF-Betrag.
@@ -152,6 +205,11 @@ struct BalanceView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
+                if appState.myParticipantID(in: trip) == balance.id {
+                    Text(L.identityYouBadge)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                }
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -225,37 +283,52 @@ struct BalanceView: View {
 }
 
 /// Eine Zeile "X zahlt Y" der Schlussabrechnung.
+///
+/// Ist bekannt, wer an diesem Gerät sitzt (`myParticipantID`), wird die Zeile
+/// aus dessen Sicht formuliert – "Du zahlsch …" statt "Raphi → Gini".
 struct TransferRow: View {
     let transfer: Transfer
     let chfAmount: Decimal?
     let showCHF: Bool
     var emphasised = false
+    var myParticipantID: UUID?
+
+    private var involvesMe: Bool {
+        guard let myParticipantID else { return false }
+        return transfer.from.id == myParticipantID || transfer.to.id == myParticipantID
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Theme.participantColor(transfer.from.colorIndex))
-                    .frame(width: 7, height: 7)
-                Text(transfer.from.name)
-                    .lineLimit(1)
-                Image(systemName: "arrow.right")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textTertiary)
-                Circle()
-                    .fill(Theme.participantColor(transfer.to.colorIndex))
-                    .frame(width: 7, height: 7)
-                Text(transfer.to.name)
-                    .lineLimit(1)
+            if let myParticipantID, transfer.from.id == myParticipantID {
+                perspectiveLabel(L.identityYouPay(transfer.to.name), color: Theme.participantColor(transfer.to.colorIndex))
+            } else if let myParticipantID, transfer.to.id == myParticipantID {
+                perspectiveLabel(L.identityYouReceive(transfer.from.name), color: Theme.participantColor(transfer.from.colorIndex))
+            } else {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Theme.participantColor(transfer.from.colorIndex))
+                        .frame(width: 7, height: 7)
+                    Text(transfer.from.name)
+                        .lineLimit(1)
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.textTertiary)
+                    Circle()
+                        .fill(Theme.participantColor(transfer.to.colorIndex))
+                        .frame(width: 7, height: 7)
+                    Text(transfer.to.name)
+                        .lineLimit(1)
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.textPrimary)
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(Theme.textPrimary)
 
             Text(Money.format(transfer.amount, currencyCode: transfer.currencyCode))
                 .font(emphasised
                       ? .system(size: 30, weight: .bold, design: .rounded)
                       : .title3.weight(.semibold))
-                .foregroundStyle(Theme.accent)
+                .foregroundStyle(involvesMe ? Theme.accent : Theme.textSecondary)
                 .monospacedDigit()
 
             if showCHF, let chfAmount {
@@ -265,5 +338,18 @@ struct TransferRow: View {
                     .monospacedDigit()
             }
         }
+    }
+
+    @ViewBuilder
+    private func perspectiveLabel(_ text: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(text)
+                .lineLimit(1)
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(Theme.textPrimary)
     }
 }

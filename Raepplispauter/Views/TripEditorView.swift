@@ -21,8 +21,11 @@ struct TripEditorView: View {
     @State private var drafts: [ParticipantDraft]
 
     @State private var shareTarget: ShareTarget?
+    @State private var shareLink: ShareLinkTarget?
     @State private var isPreparingShare = false
     @State private var errorMessage: String?
+    /// Welche Person sitzt an diesem Gerät? (Draft-Kennung, siehe `identitySection`)
+    @State private var myDraftID: UUID?
 
     init(trip: Trip?) {
         self.trip = trip
@@ -34,10 +37,18 @@ struct TripEditorView: View {
 
         if let trip, !trip.participantList.isEmpty {
             _drafts = State(initialValue: trip.participantList.map(ParticipantDraft.init(participant:)))
+            // Draft-Kennung entspricht bei bestehenden Personen der Participant-UUID.
+            _myDraftID = State(initialValue: trip.id.flatMap { AppSettings.myParticipantID(forTrip: $0) })
         } else {
             // Neue Reise: eine leere Zeile als Startpunkt, weitere per "+".
             _drafts = State(initialValue: [ParticipantDraft(name: "", costSharePercent: 100)])
+            _myDraftID = State(initialValue: nil)
         }
+    }
+
+    private struct ShareLinkTarget: Identifiable {
+        let id = UUID()
+        let url: URL
     }
 
     /// Bearbeitbare Person – funktioniert auch, solange die Reise noch gar nicht
@@ -136,6 +147,7 @@ struct TripEditorView: View {
                 .disabled(!contentEditable)
 
                 participantsSection
+                identitySection
                 costShareSection
 
                 if let trip, !isNew {
@@ -191,6 +203,9 @@ struct TripEditorView: View {
                                   onFailed: { error in
                                       errorMessage = error.localizedDescription
                                   })
+            }
+            .sheet(item: $shareLink) { target in
+                ActivityView(items: [target.url])
             }
             .alert(L.errorTitle, isPresented: Binding(get: { errorMessage != nil },
                                                       set: { if !$0 { errorMessage = nil } })) {
@@ -275,6 +290,31 @@ struct TripEditorView: View {
             let values = SplitCalculator.normalise(drafts.map(\.costSharePercent))
             for (index, value) in values.enumerated() where drafts.indices.contains(index) {
                 drafts[index].costSharePercent = value
+            }
+        }
+    }
+
+    // MARK: - "Das bin ich"
+
+    /// Zuordnung, welche Person an diesem Gerät sitzt. Nur auf dem Gerät
+    /// gespeichert – auf dem Gerät der Partnerin steht hier jemand anderes.
+    @ViewBuilder
+    private var identitySection: some View {
+        if drafts.count > 1 {
+            Section {
+                Picker(L.identityQuestion, selection: $myDraftID) {
+                    Text(L.identityNotSet).tag(UUID?.none)
+                    ForEach(Array(drafts.enumerated()), id: \.element.id) { index, draft in
+                        Text(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                             ? L.participantPlaceholderNumbered(index + 1)
+                             : draft.name)
+                            .tag(UUID?.some(draft.id))
+                    }
+                }
+            } header: {
+                Text(L.identityTitle)
+            } footer: {
+                Text(L.identityHint)
             }
         }
     }
@@ -366,6 +406,17 @@ struct TripEditorView: View {
                 }
                 .disabled(isPreparingShare)
 
+                // Einladungs-Link direkt weiterschicken (Nachrichten, WhatsApp,
+                // Mail …). Steht erst zur Verfügung, sobald die Freigabe einmal
+                // gespeichert wurde.
+                if let url = controller.shareURL(for: trip) {
+                    Button {
+                        shareLink = ShareLinkTarget(url: url)
+                    } label: {
+                        Label(L.sharingSendLink, systemImage: "link")
+                    }
+                }
+
                 if isShared {
                     Button(role: .destructive) {
                         Task { await SharingController.shared.stopSharing(trip) }
@@ -445,7 +496,9 @@ struct TripEditorView: View {
             context.delete(participant)
         }
 
-        // Bestehende aktualisieren, neue anlegen.
+        // Bestehende aktualisieren, neue anlegen. Neue Personen übernehmen die
+        // Kennung ihres Entwurfs – dadurch bleibt die Zuordnung "das bin ich"
+        // auch bei einer frisch angelegten Reise gültig.
         for (index, draft) in effective.enumerated() {
             let cleanName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
             if let existing = draft.existing {
@@ -457,13 +510,20 @@ struct TripEditorView: View {
                 let created = Participant.create(in: context,
                                                  trip: target,
                                                  name: cleanName,
-                                                 costSharePercent: draft.costSharePercent)
+                                                 costSharePercent: draft.costSharePercent,
+                                                 id: draft.id)
                 created.sortIndex = Int16(index)
                 created.colorIndex = Int16(draft.colorIndex % Theme.participantPaletteSize)
             }
         }
 
         PersistenceController.shared.save()
+
+        // Zuordnung erst nach dem Speichern setzen – vorher hat eine neue Reise
+        // noch keine Kennung. Eine gelöschte oder leer gebliebene Person wird
+        // dabei automatisch verworfen.
+        let chosenID = myDraftID.flatMap { id in effective.contains { $0.id == id } ? id : nil }
+        appState.setMyParticipantID(chosenID, in: target)
 
         if isNew {
             appState.select(target)

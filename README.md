@@ -174,6 +174,26 @@ Läbesmittel, ÖV, Outo, Sightseeing); eigene lassen sich jederzeit ergänzen
 (auch direkt beim Erfassen einer Ausgabe), umbenennen, einfärben und – solange
 keine Ausgabe sie verwendet – löschen.
 
+### „Das bin ich"
+
+Die App fragt einmal pro Reise, welche Person an diesem Gerät sitzt. Danach:
+
+* zeigt die Bilanz die Zahlungen aus eigener Sicht („Du zahlsch Beat" statt
+  „Anna → Beat"), und die eigenen Zahlungen stehen zuoberst
+* ist man beim Erfassen einer Ausgabe als Zahler vorbelegt
+* ist die eigene Zeile in der Personenliste mit „du" markiert
+
+Die Zuordnung liegt bewusst **nur auf dem Gerät** (`UserDefaults`, Schlüssel
+`myParticipant.<Reise-UUID>`), nicht im Datenmodell:
+
+* Auf dem Gerät der Partnerin ist die Antwort eine andere – im geteilten
+  Datensatz gäbe es gar keinen eindeutigen Wert.
+* Es braucht keine CloudKit-Schemaänderung, die Zuordnung ist also auch nach
+  der Veröffentlichung noch änderbar.
+* Es wird keine iCloud-Kennung gespeichert, nur eine App-interne UUID.
+
+Ändern lässt sie sich jederzeit in den Reise-Einstellungen unter „Wär bisch du?".
+
 ### Abgeschlossene Reisen
 
 Ist eine Reise abgeschlossen, sind Erfassen, Ändern und Löschen von Ausgaben
@@ -234,6 +254,13 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 2. **Annehmen** – Der Partner tippt auf den Link, iOS ruft
    `application(_:userDidAcceptCloudKitShareWith:)` auf, die App ruft
    `acceptShareInvitations(from:into:)` mit dem *shared* Store auf.
+**Reichweite der Freigabe:** In der Apple-Freigabeoberfläche lässt sich zwischen
+„nur iiglademi Lüt" (namentlich eingeladene Apple-Accounts) und „jede, wo dr Link
+het" wählen. Für eine Ferienabrechnung ist Letzteres meist praktischer: Link in
+die Gruppe schicken, fertig. Sobald die Freigabe einmal gespeichert ist, gibt es
+in den Reise-Einstellungen zusätzlich **„Iiladigs-Link verschicke"**, das den Link
+direkt an Nachrichten, Mail, WhatsApp & Co. übergibt.
+
 3. **Betrieb** – Beide Geräte schreiben in dieselbe Zone. Neue Ausgaben landen
    automatisch in der Zone ihrer Reise (`context.assign(_:to:)` sorgt dafür, dass
    sie im richtigen Store liegen).

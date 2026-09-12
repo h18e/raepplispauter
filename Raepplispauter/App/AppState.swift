@@ -53,6 +53,37 @@ public final class AppState: ObservableObject {
         await refreshRates(context: context)
     }
 
+    // MARK: - "Das bin ich"
+
+    /// Wird bei jeder Änderung der Zuordnung erhöht, damit abhängige Ansichten
+    /// neu zeichnen. Die Werte selbst liegen in `AppSettings` (gerätelokal).
+    @Published public private(set) var identityRevision = 0
+
+    /// Welche Person der Reise sitzt an diesem Gerät? `nil` = noch nicht gewählt.
+    public func myParticipantID(in trip: Trip) -> UUID? {
+        guard let tripID = trip.id else { return nil }
+        guard let stored = AppSettings.myParticipantID(forTrip: tripID) else { return nil }
+        // Die Person könnte inzwischen gelöscht worden sein.
+        return trip.participantList.contains { $0.id == stored } ? stored : nil
+    }
+
+    public func myParticipant(in trip: Trip) -> Participant? {
+        guard let id = myParticipantID(in: trip) else { return nil }
+        return trip.participant(with: id)
+    }
+
+    public func setMyParticipantID(_ participantID: UUID?, in trip: Trip) {
+        guard let tripID = trip.id else { return }
+        AppSettings.setMyParticipantID(participantID, forTrip: tripID)
+        identityRevision += 1
+    }
+
+    /// Muss die Reise noch fragen, wer hier sitzt?
+    /// Bei nur einer Person erübrigt sich die Frage.
+    public func needsIdentityChoice(in trip: Trip) -> Bool {
+        trip.participantList.count > 1 && myParticipantID(in: trip) == nil
+    }
+
     /// Läuft die App ohne iCloud? (Schalter in `AppConfiguration` oder Fallback.)
     public var isLocalOnly: Bool { PersistenceController.shared.isLocalOnly }
 

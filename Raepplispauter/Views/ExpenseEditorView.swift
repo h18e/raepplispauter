@@ -59,8 +59,11 @@ struct ExpenseEditorView: View {
                 _paymentPercentages = State(initialValue: SplitCalculator.equalShares(count: participants.count))
             }
         } else {
-            // Neue Ausgabe: erste Person als Zahlerin vorschlagen.
-            _payerID = State(initialValue: participants.first?.id)
+            // Neue Ausgabe: die Person vorschlagen, die an diesem Gerät sitzt –
+            // meistens hat sie auch bezahlt. Sonst die erste der Liste.
+            let me = trip.id.flatMap { AppSettings.myParticipantID(forTrip: $0) }
+            let suggested = me.flatMap { id in participants.first { $0.id == id } } ?? participants.first
+            _payerID = State(initialValue: suggested?.id)
             _paymentPercentages = State(initialValue: SplitCalculator.equalShares(count: participants.count))
         }
     }

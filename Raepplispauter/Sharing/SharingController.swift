@@ -69,6 +69,15 @@ public final class SharingController: ObservableObject {
         return container.canUpdateRecord(forManagedObjectWith: trip.objectID)
     }
 
+    /// Einladungs-Link der Reise.
+    ///
+    /// Erst verfügbar, **nachdem** der Share tatsächlich in iCloud gespeichert
+    /// wurde (also nach dem ersten Durchlauf der Freigabe-Oberfläche). Vorher ist
+    /// er `nil` – dann gibt es in der UI auch keinen Knopf zum Verschicken.
+    public func shareURL(for trip: Trip) -> URL? {
+        existingShare(for: trip)?.url
+    }
+
     /// Anzeigenamen der Teilnehmer – für die Sharing-Karte in den Reise-Einstellungen.
     public func participantNames(for trip: Trip) -> [String] {
         guard let share = existingShare(for: trip) else { return [] }
@@ -123,7 +132,10 @@ public final class SharingController: ObservableObject {
                 }
                 // Titel der Einladung, wie er in Nachrichten/Mail erscheint.
                 share[CKShare.SystemFieldKey.title] = shareTitle as CKRecordValue
-                share.publicPermission = .none      // nur eingeladene Personen
+                // `publicPermission` wird bewusst nicht erzwungen: In der
+                // Freigabe-Oberfläche entscheidet die Person selbst zwischen
+                // "nur iiglademi Lüt" und "jede, wo dr Link het". Für eine
+                // Ferienabrechnung ist Letzteres oft das Praktischere.
                 continuation.resume(returning: (share, ckContainer))
             }
         }
