@@ -107,6 +107,10 @@ struct TripEditorView: View {
         Binding(
             get: { drafts.map(\.costSharePercent) },
             set: { values in
+                // Nur schreiben, wenn sich wirklich etwas ändert – sonst stösst
+                // jeder Schreibvorgang das nächste Neuzeichnen an und die
+                // Ansicht dreht sich im Kreis.
+                guard values != drafts.map(\.costSharePercent) else { return }
                 for (index, value) in values.enumerated() where drafts.indices.contains(index) {
                     drafts[index].costSharePercent = value
                 }
@@ -225,12 +229,12 @@ struct TripEditorView: View {
 
     private var participantsSection: some View {
         Section {
-            ForEach($drafts) { $draft in
+            ForEach(drafts) { draft in
                 HStack(spacing: 10) {
                     Circle()
                         .fill(Theme.participantColor(draft.colorIndex))
                         .frame(width: 10, height: 10)
-                    TextField(L.participantNamePlaceholder, text: $draft.name)
+                    TextField(L.participantNamePlaceholder, text: nameBinding(for: draft.id))
                         .textInputAutocapitalization(.words)
                         .disabled(!contentEditable)
                 }
@@ -254,18 +258,37 @@ struct TripEditorView: View {
         }
     }
 
-    private func addParticipant() {
-        withAnimation {
-            var draft = ParticipantDraft(name: "", costSharePercent: 0)
-            draft.colorIndex = drafts.count % Theme.participantPaletteSize
-            drafts.append(draft)
-
-            // Neue Person bekommt ihren gleichmässigen Anteil, die übrigen werden
-            // proportional gestaucht – die Summe bleibt 100 %.
-            let values = SplitCalculator.distributeAfterInsert(drafts.map(\.costSharePercent))
-            for (index, value) in values.enumerated() where drafts.indices.contains(index) {
-                drafts[index].costSharePercent = value
+    /// Namens-Feld über die **stabile Kennung** der Person ansprechen, nicht über
+    /// die Position im Array.
+    ///
+    /// Mit `ForEach($drafts)` hingen die Textfelder am Index. Kommt während des
+    /// Tippens eine Person dazu, verschiebt sich dieser Index unter dem gerade
+    /// aktiven Feld weg – die Oberfläche kann sich dann festfahren.
+    private func nameBinding(for id: UUID) -> Binding<String> {
+        Binding(
+            get: { drafts.first { $0.id == id }?.name ?? "" },
+            set: { newValue in
+                guard let index = drafts.firstIndex(where: { $0.id == id }),
+                      drafts[index].name != newValue else { return }
+                drafts[index].name = newValue
             }
+        )
+    }
+
+    private func addParticipant() {
+        // Ohne `withAnimation`: Beim Sprung von einer auf zwei Personen blenden
+        // sich gleichzeitig zwei weitere Abschnitte ein (Zuordnung und
+        // Kostenschlüssel). Diese Umbauten zu animieren, während zugleich ein
+        // Textfeld den Fokus hält, ist die anfälligste Stelle der ganzen Maske.
+        var draft = ParticipantDraft(name: "", costSharePercent: 0)
+        draft.colorIndex = drafts.count % Theme.participantPaletteSize
+        drafts.append(draft)
+
+        // Neue Person bekommt ihren gleichmässigen Anteil, die übrigen werden
+        // proportional gestaucht – die Summe bleibt 100 %.
+        let values = SplitCalculator.distributeAfterInsert(drafts.map(\.costSharePercent))
+        for (index, value) in values.enumerated() where drafts.indices.contains(index) {
+            drafts[index].costSharePercent = value
         }
     }
 
@@ -285,12 +308,17 @@ struct TripEditorView: View {
             return
         }
 
-        withAnimation {
-            drafts.remove(atOffsets: offsets)
-            let values = SplitCalculator.normalise(drafts.map(\.costSharePercent))
-            for (index, value) in values.enumerated() where drafts.indices.contains(index) {
-                drafts[index].costSharePercent = value
-            }
+        // Ebenfalls ohne Animation – beim Schritt von zwei auf eine Person
+        // verschwinden zwei Abschnitte gleichzeitig (siehe `addParticipant`).
+        drafts.remove(atOffsets: offsets)
+        let values = SplitCalculator.normalise(drafts.map(\.costSharePercent))
+        for (index, value) in values.enumerated() where drafts.indices.contains(index) {
+            drafts[index].costSharePercent = value
+        }
+
+        // Zuordnung "das bin ich" mitziehen, falls die gewählte Person weg ist.
+        if let myDraftID, !drafts.contains(where: { $0.id == myDraftID }) {
+            self.myDraftID = nil
         }
     }
 

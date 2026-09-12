@@ -66,7 +66,12 @@ struct SplitEditorView: View {
                             .frame(minWidth: 58, alignment: .trailing)
                     }
 
-                    Slider(value: binding(for: index), in: 0...100, step: 1)
+                    // Bewusst OHNE `step`: Der Schieber würde sonst auf ganze
+                    // Prozent einrasten, während `SplitCalculator` Zehntel
+                    // zurückgibt (33.3 % bei drei Personen). Schieber und Wert
+                    // würden sich dann gegenseitig immer wieder korrigieren –
+                    // eine Endlosschleife, die die Oberfläche einfriert.
+                    Slider(value: binding(for: index), in: 0...100)
                         .tint(Theme.participantColor(participant.colorIndex))
                         .disabled(!isEnabled || participants.count < 2)
                 }
@@ -86,6 +91,10 @@ struct SplitEditorView: View {
         Binding(
             get: { value(at: index) },
             set: { newValue in
+                // Schreibsperre bei unveränderten Werten: Ohne sie löst jedes
+                // Neuzeichnen ein weiteres Neuzeichnen aus, und die Ansicht
+                // kommt nie zur Ruhe.
+                guard abs(newValue - value(at: index)) > 0.05 else { return }
                 percentages = SplitCalculator.adjust(percentages, to: newValue, at: index)
             }
         )
