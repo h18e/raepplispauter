@@ -37,19 +37,73 @@ FULL_PATTERN = re.compile(
     re.DOTALL,
 )
 
-# Parameter, die im Quelltext als Int deklariert sind, brauchen %lld statt %@.
-INT_PARAMETERS = {"count"}
+# Funktionssignatur, z. B.:  public static func foo(_ number: Int, _ name: String) -> String
+FUNC_SIGNATURE = re.compile(
+    r"public static func \w+\((?P<params>[^)]*)\)\s*->\s*String"
+)
+
+# Ein einzelner Parameter:  _ number: Int   bzw.   name: String
+PARAMETER = re.compile(r"(?:\w+\s+)?(?P<name>\w+)\s*:\s*(?P<type>\w+)")
 
 # Interpolation im Swift-Literal: \(ausdruck)
 INTERPOLATION = re.compile(r"\\\((?P<expr>[^()]*)\)")
 
+# Format-Spezifikatoren je Swift-Typ. Stimmen sie nicht mit dem überein, was
+# die App zur Laufzeit übergibt, liest Foundation den Wert als Zeiger und die
+# App stürzt mit EXC_BAD_ACCESS ab – deshalb wird der Typ hier aus der
+# Signatur gelesen und nicht am Parameternamen geraten.
+FORMAT_BY_TYPE = {
+    "Int": "%lld",
+    "Int32": "%d",
+    "Int64": "%lld",
+    "Double": "%lf",
+    "Float": "%f",
+    "String": "%@",
+}
 
-def swift_literal_to_catalog_value(raw: str) -> str:
+
+def parameter_types(source: str, position: int) -> dict[str, str]:
+    """Parametertypen der Funktion, in der die Fundstelle steht.
+
+    Sucht rückwärts ab der Fundstelle nach der nächstgelegenen Signatur.
+    """
+    last = None
+    for match in FUNC_SIGNATURE.finditer(source, 0, position):
+        last = match
+    if last is None:
+        return {}
+    return {
+        param.group("name"): param.group("type")
+        for param in PARAMETER.finditer(last.group("params"))
+    }
+
+
+def swift_literal_to_catalog_value(raw: str, types: dict[str, str], key: str) -> str:
     """Wandelt ein Swift-Stringliteral in einen Katalogeintrag um."""
 
     def replace(match: re.Match) -> str:
         expression = match.group("expr").strip()
-        return "%lld" if expression in INT_PARAMETERS else "%@"
+        swift_type = types.get(expression)
+        if swift_type is None:
+            raise SystemExit(
+                f"FEHLER bei «{key}»: Der Platzhalter \\({expression}) lässt sich keinem "
+                f"Parameter zuordnen. Bekannte Parameter: {sorted(types) or 'keine'}.\n"
+                f"Ohne bekannten Typ wäre der Format-Spezifikator geraten – das führt "
+                f"zur Laufzeit zu einem Absturz."
+            )
+        if swift_type not in FORMAT_BY_TYPE:
+            raise SystemExit(
+                f"FEHLER bei «{key}»: Für den Typ «{swift_type}» ist kein "
+                f"Format-Spezifikator hinterlegt. Bitte in FORMAT_BY_TYPE ergänzen."
+            )
+        return FORMAT_BY_TYPE[swift_type]
+
+    # Enthält der Text Platzhalter, wird er zur Laufzeit als Format-String
+    # verarbeitet. Dann muss ein gemeintes Prozentzeichen ("100 %") verdoppelt
+    # werden, sonst deutet Foundation es als Spezifikator. Ohne Platzhalter
+    # findet keine Formatierung statt – dort bliebe "%%" sichtbar stehen.
+    if INTERPOLATION.search(raw):
+        raw = raw.replace("%", "%%")
 
     value = INTERPOLATION.sub(replace, raw)
     # Escapes des Swift-Literals auflösen.
@@ -68,7 +122,8 @@ def main() -> int:
     matches = list(SHORT_PATTERN.finditer(source)) + list(FULL_PATTERN.finditer(source))
     for match in matches:
         key = match.group("key")
-        value = swift_literal_to_catalog_value(match.group("value"))
+        types = parameter_types(source, match.start())
+        value = swift_literal_to_catalog_value(match.group("value"), types, key)
         strings[key] = {
             "extractionState": "manual",
             "localizations": {
