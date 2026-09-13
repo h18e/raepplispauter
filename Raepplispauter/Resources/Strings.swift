@@ -110,10 +110,10 @@ public enum L {
     // MARK: - Bilanz
 
     public static let balanceTitle = t("balance.title", "Bilanz")
-    public static let balanceNoTrip = t("balance.noTrip", "No kei Reis erfasst")
+    public static let balanceNoTrip = t("balance.noTrip", "No keni gmeinsamä Usgabä erfasst")
     public static let balanceNoTripHint = t("balance.noTripHint",
-                                            "Legg zerscht e Reis a, de chasch drufabe Uusgabe erfasse.")
-    public static let balanceCreateTrip = t("balance.createTrip", "Nöii Reis erstelle")
+                                            "Ersteu zersch ä gmeinsami Usgab, de chasch när euchi Usgabä erfassä.")
+    public static let balanceCreateTrip = t("balance.createTrip", "Nöii gemeinsami Usgab ersteuä")
     public static let balanceEven = t("balance.even", "Alles usglyche – niemer schuldet öppis.")
     public static let balancePaid = t("balance.paid", "Uusgleit")
     public static let balanceShare = t("balance.share", "Aateil")

@@ -19,19 +19,56 @@ struct RootView: View {
                 MainTabView(trip: trip)
             } else {
                 NavigationStack {
-                    EmptyStateView(symbol: "suitcase.rolling",
-                                   title: L.balanceNoTrip,
-                                   message: L.balanceNoTripHint,
-                                   actionTitle: L.balanceCreateTrip) {
-                        showTripEditor = true
-                    }
-                    .screenBackground()
-                    .navigationTitle(L.appName)
+                    WelcomeView { showTripEditor = true }
+                        .navigationTitle(L.appName)
                 }
             }
         }
         .sheet(isPresented: $showTripEditor) {
             TripEditorView(trip: nil)
+        }
+    }
+}
+
+/// Startbildschirm, solange noch nichts erfasst ist.
+///
+/// Statt eines einzelnen grossen Symbols liegt hier ein Wasserzeichen aus
+/// vielen kleinen Ausgaben-Symbolen über die ganze Fläche – das zeigt auf einen
+/// Blick, worum es in der App geht, ohne aufdringlich zu sein.
+struct WelcomeView: View {
+
+    let action: () -> Void
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            ExpenseWatermarkBackground().ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                Text(L.balanceNoTrip)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text(L.balanceNoTripHint)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                Button(L.balanceCreateTrip, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
+                    .padding(.top, 6)
+            }
+            .padding(28)
+            // Dezenter Verlauf hinter dem Text, damit er sich auch dort klar
+            // abhebt, wo zufällig mehrere Symbole zusammenfallen.
+            .background(
+                RadialGradient(colors: [Theme.background, Theme.background.opacity(0)],
+                               center: .center,
+                               startRadius: 40,
+                               endRadius: 260)
+            )
         }
     }
 }
