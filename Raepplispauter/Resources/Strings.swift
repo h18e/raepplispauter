@@ -36,11 +36,11 @@ public enum L {
     public static let tabLogbook = t("tab.logbook", "Logbuech")
     public static let tabAnalysis = t("tab.analysis", "Uswertig")
     public static let tabSettlement = t("tab.settlement", "Abrächnig")
-    public static let tabTrips = t("tab.trips", "Reise")
+    public static let tabTrips = t("tab.trips", "Kassä")
 
     // MARK: - Kategorien
 
-    /// Startsatz beim Anlegen einer Reise – frei erweiterbar und löschbar.
+    /// Startsatz beim Anlegen einer Kassä – frei erweiterbar und löschbar.
     public static let categoryUnterkunft = t("category.unterkunft", "Unterkunft")
     public static let categoryRestaurant = t("category.restaurant", "Restaurant")
     public static let categoryLebensmittel = t("category.lebensmittel", "Läbesmittel")
@@ -50,7 +50,7 @@ public enum L {
 
     public static let categoriesTitle = t("categories.title", "Kategorie")
     public static let categoriesHint = t("categories.hint",
-                                         "D Kategorie ghöre zur Reis und wärde mit em Teile automatisch mitgnoh.")
+                                         "D Kategorie ghöre zur Kassä und wärde mit em Teile automatisch mitgnoh.")
     public static let categoriesDeleteHint = t("categories.deleteHint",
                                                "Zum Lösche nach links wüsche. Kategorie, wo scho bruucht wärde, chöi nid glöscht wärde.")
     public static let categoryNew = t("category.new", "Nöii Kategorie")
@@ -110,22 +110,22 @@ public enum L {
     // MARK: - Bilanz
 
     public static let balanceTitle = t("balance.title", "Bilanz")
-    public static let balanceNoTrip = t("balance.noTrip", "No keni gmeinsamä Usgabä erfasst")
+    public static let balanceNoTrip = t("balance.noTrip", "No kei Kassä erfasst")
     public static let balanceNoTripHint = t("balance.noTripHint",
-                                            "Ersteu zersch ä gmeinsami Usgab, de chasch när euchi Usgabä erfassä.")
-    public static let balanceCreateTrip = t("balance.createTrip", "Nöii gemeinsami Usgab ersteuä")
+                                            "Ersteu zersch ä Kassä, de chasch när euchi Usgabä erfassä.")
+    public static let balanceCreateTrip = t("balance.createTrip", "Nöii Kassä ersteuä")
     public static let balanceEven = t("balance.even", "Alles usglyche – niemer schuldet öppis.")
     public static let balancePaid = t("balance.paid", "Uusgleit")
     public static let balanceShare = t("balance.share", "Aateil")
     public static let balanceNet = t("balance.net", "Saldo")
     public static let balanceTotalExpenses = t("balance.totalExpenses", "Total Uusgabe")
-    public static let balanceInTripCurrency = t("balance.inTripCurrency", "I dr Reisewärig")
+    public static let balanceInTripCurrency = t("balance.inTripCurrency", "I dr Kassä-Wärig")
     public static let balanceInCHF = t("balance.inCHF", "I Franke")
     public static let balanceRecent = t("balance.recent", "Letschti Uusgabe")
     public static let balanceShowAll = t("balance.showAll", "Alli zeige")
-    public static let balanceNoExpenses = t("balance.noExpenses", "No kei Uusgabe i dere Reis.")
+    public static let balanceNoExpenses = t("balance.noExpenses", "No kei Usgabä i dere Kassä.")
     public static let balanceNoParticipants = t("balance.noParticipants",
-                                                "Für die Reis si no kei Persone erfasst.")
+                                                "Für die Kassä si no kei Persone erfasst.")
 
 
     public static func balanceMissingRates(_ count: Int) -> String {
@@ -191,27 +191,27 @@ public enum L {
     public static let settlementBalanced = t("settlement.balanced", "Alles usglyche")
     public static let settlementExport = t("settlement.export", "CSV exportiere")
     public static let settlementExportFailed = t("settlement.exportFailed", "Dr Export het nid klappet.")
-    public static let settlementCloseTrip = t("settlement.closeTrip", "Reis abschlüsse")
-    public static let settlementReopenTrip = t("settlement.reopenTrip", "Reis wieder ufmache")
-    public static let settlementClosedNotice = t("settlement.closedNotice", "Die Reis isch abgschlosse.")
+    public static let settlementCloseTrip = t("settlement.closeTrip", "Kassä abschlüsse")
+    public static let settlementReopenTrip = t("settlement.reopenTrip", "Kassä wieder ufmache")
+    public static let settlementClosedNotice = t("settlement.closedNotice", "Die Kassä isch abgschlosse.")
     public static let settlementDetails = t("settlement.details", "Detail")
     public static let settlementCloseConfirm = t("settlement.closeConfirm",
-                                                 "Reis abschlüsse? Drufabe chasch kei Uusgabe meh erfasse, ändere oder lösche.")
+                                                 "Kassä abschlüsse? Drufabe chasch kei Usgabä meh erfasse, ändere oder lösche.")
 
-    // MARK: - Reise
+    // MARK: - Kassä
 
-    public static let tripsTitle = t("trips.title", "Reise")
-    public static let tripsActive = t("trips.active", "Aktivi Reise")
-    public static let tripsClosed = t("trips.closed", "Abgschlosseni Reise")
-    public static let tripsEmpty = t("trips.empty", "No kei Reise aagleit.")
-    public static let tripNew = t("trip.new", "Nöii Reis")
-    public static let tripEditTitle = t("trip.editTitle", "Reis bearbeite")
+    public static let tripsTitle = t("trips.title", "Kassä")
+    public static let tripsActive = t("trips.active", "Aktivi Kassä")
+    public static let tripsClosed = t("trips.closed", "Abgschlosseni Kassä")
+    public static let tripsEmpty = t("trips.empty", "No kei Kassä aagleit.")
+    public static let tripNew = t("trip.new", "Nöii Kassä")
+    public static let tripEditTitle = t("trip.editTitle", "Kassä bearbeite")
     public static let tripName = t("trip.name", "Name")
-    public static let tripNamePlaceholder = t("trip.namePlaceholder", "z. B. Toskana 2026")
+    public static let tripNamePlaceholder = t("trip.namePlaceholder", "z. B. Toskana 2026 oder WG-Chuchi")
     public static let tripPeriod = t("trip.period", "Zytruum")
     public static let tripStart = t("trip.start", "Vo")
     public static let tripEnd = t("trip.end", "Bis")
-    public static let tripCurrency = t("trip.currency", "Landeswärig")
+    public static let tripCurrency = t("trip.currency", "Wärig vo dr Kassä")
     public static let tripPeople = t("trip.people", "Persone")
     public static let tripPeopleHint = t("trip.peopleHint",
                                          "So viel Persone wie du wottsch. Zum Lösche nach links wüsche – Persone mit Uusgabe blybe gschützt.")
@@ -221,19 +221,19 @@ public enum L {
     public static let tripCostShareSingle = t("trip.costShareSingle",
                                               "Mit nume einere Person trait die logischerwys 100 %.")
     public static let tripClosedHint = t("trip.closedHint",
-                                         "Bi ere abgschlossene Reis chasch kei Uusgabe meh erfasse, ändere oder lösche.")
+                                         "Bi ere abgschlossene Kassä chasch kei Usgabä meh erfasse, ändere oder lösche.")
     public static let tripClosedBlocked = t("trip.closedBlocked",
-                                            "Die Reis isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache.")
+                                            "Die Kassä isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache.")
 
     public static func tripParticipantCount(_ count: Int) -> String {
         String(localized: "trip.participantCount", defaultValue: "\(count) Persone")
     }
-    public static let tripDeleteConfirm = t("trip.deleteConfirm", "Die Reis mit allne Uusgabe lösche?")
+    public static let tripDeleteConfirm = t("trip.deleteConfirm", "Die Kassä mit allne Usgabä lösche?")
     public static let tripUnnamed = t("trip.unnamed", "Ohni Name")
     public static let tripStatusActive = t("trip.statusActive", "Aktiv")
     public static let tripStatusClosed = t("trip.statusClosed", "Abgschlosse")
     public static let tripSelect = t("trip.select", "Uswähle")
-    public static let tripNoName = t("trip.noName", "Bitte gib dr Reis e Name.")
+    public static let tripNoName = t("trip.noName", "Bitte gib dr Kassä e Name.")
 
     // MARK: - Teile (CloudKit-Sharing)
 
@@ -246,11 +246,11 @@ public enum L {
     public static let sharingNotShared = t("sharing.notShared", "No nid teilt")
     public static let sharingShared = t("sharing.shared", "Teilt")
     public static let sharingHint = t("sharing.hint",
-                                      "D Reis wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account.")
-    public static let sharingOnlyOwner = t("sharing.onlyOwner", "Nume wär d Reis aagleit het, cha si teile.")
+                                      "D Kassä wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account.")
+    public static let sharingOnlyOwner = t("sharing.onlyOwner", "Nume wär d Kassä aagleit het, cha si teile.")
     public static let sharingUnknownParticipant = t("sharing.unknownParticipant", "Unbekannte Teilnehmer")
     public static let sharingNoSharedStore = t("sharing.noSharedStore", "Dr geteilti Spycher isch nid bereit.")
-    public static let sharingAccepted = t("sharing.accepted", "Iiladig aagno – d Reis isch jetz da.")
+    public static let sharingAccepted = t("sharing.accepted", "Iiladig aagno – d Kassä isch jetz da.")
     public static let sharingCreateFailed = t("sharing.createFailed", "D Freigab het nid chönne erstellt wärde.")
     public static let sharingParticipant = t("sharing.participant", "Du bisch iiglade worde")
 
@@ -375,9 +375,9 @@ public enum L {
 
     // MARK: - CSV-Export
 
-    public static let csvHeaderTrip = t("csv.headerTrip", "Reis")
+    public static let csvHeaderTrip = t("csv.headerTrip", "Kassä")
     public static let csvHeaderPeriod = t("csv.headerPeriod", "Zytruum")
-    public static let csvHeaderCurrency = t("csv.headerCurrency", "Reisewärig")
+    public static let csvHeaderCurrency = t("csv.headerCurrency", "Kassä-Wärig")
     public static let csvHeaderExported = t("csv.headerExported", "Exportiert am")
     public static let csvSectionTransactions = t("csv.sectionTransactions", "Einzeltransaktione")
     public static let csvSectionCategories = t("csv.sectionCategories", "Kategorie-Summe")

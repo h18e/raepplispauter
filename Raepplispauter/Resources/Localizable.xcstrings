@@ -84,7 +84,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nöii gemeinsami Usgab ersteuä"
+            "value": "Nöii Kassä ersteuä"
           }
         }
       }
@@ -117,7 +117,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "I dr Reisewärig"
+            "value": "I dr Kassä-Wärig"
           }
         }
       }
@@ -150,7 +150,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "No kei Uusgabe i dere Reis."
+            "value": "No kei Usgabä i dere Kassä."
           }
         }
       }
@@ -161,7 +161,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Für die Reis si no kei Persone erfasst."
+            "value": "Für die Kassä si no kei Persone erfasst."
           }
         }
       }
@@ -172,7 +172,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "No keni gmeinsamä Usgabä erfasst"
+            "value": "No kei Kassä erfasst"
           }
         }
       }
@@ -183,7 +183,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ersteu zersch ä gmeinsami Usgab, de chasch när euchi Usgabä erfassä."
+            "value": "Ersteu zersch ä Kassä, de chasch när euchi Usgabä erfassä."
           }
         }
       }
@@ -271,7 +271,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "D Kategorie ghöre zur Reis und wärde mit em Teile automatisch mitgnoh."
+            "value": "D Kategorie ghöre zur Kassä und wärde mit em Teile automatisch mitgnoh."
           }
         }
       }
@@ -843,7 +843,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reisewärig"
+            "value": "Kassä-Wärig"
           }
         }
       }
@@ -887,7 +887,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reis"
+            "value": "Kassä"
           }
         }
       }
@@ -1921,7 +1921,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reis abschlüsse? Drufabe chasch kei Uusgabe meh erfasse, ändere oder lösche."
+            "value": "Kassä abschlüsse? Drufabe chasch kei Usgabä meh erfasse, ändere oder lösche."
           }
         }
       }
@@ -1932,7 +1932,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reis abschlüsse"
+            "value": "Kassä abschlüsse"
           }
         }
       }
@@ -1943,7 +1943,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Reis isch abgschlosse."
+            "value": "Die Kassä isch abgschlosse."
           }
         }
       }
@@ -1998,7 +1998,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reis wieder ufmache"
+            "value": "Kassä wieder ufmache"
           }
         }
       }
@@ -2031,7 +2031,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Iiladig aagno – d Reis isch jetz da."
+            "value": "Iiladig aagno – d Kassä isch jetz da."
           }
         }
       }
@@ -2053,7 +2053,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "D Reis wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account."
+            "value": "D Kassä wird über iCloud teilt. I dr Freigab chasch wähle, öb nume iiglademi Lüt oder jede mit em Link chan mitmache. Alli gseh de genau di gliiche Date – ou mit eme eigete Apple-Account."
           }
         }
       }
@@ -2119,7 +2119,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nume wär d Reis aagleit het, cha si teile."
+            "value": "Nume wär d Kassä aagleit het, cha si teile."
           }
         }
       }
@@ -2471,7 +2471,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reise"
+            "value": "Kassä"
           }
         }
       }
@@ -2482,7 +2482,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Reis isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache."
+            "value": "Die Kassä isch abgschlosse – zum Ändere muesch si zerscht wieder ufmache."
           }
         }
       }
@@ -2493,7 +2493,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bi ere abgschlossene Reis chasch kei Uusgabe meh erfasse, ändere oder lösche."
+            "value": "Bi ere abgschlossene Kassä chasch kei Usgabä meh erfasse, ändere oder lösche."
           }
         }
       }
@@ -2537,7 +2537,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Landeswärig"
+            "value": "Wärig vo dr Kassä"
           }
         }
       }
@@ -2548,7 +2548,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Reis mit allne Uusgabe lösche?"
+            "value": "Die Kassä mit allne Usgabä lösche?"
           }
         }
       }
@@ -2559,7 +2559,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reis bearbeite"
+            "value": "Kassä bearbeite"
           }
         }
       }
@@ -2592,7 +2592,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "z. B. Toskana 2026"
+            "value": "z. B. Toskana 2026 oder WG-Chuchi"
           }
         }
       }
@@ -2603,7 +2603,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nöii Reis"
+            "value": "Nöii Kassä"
           }
         }
       }
@@ -2614,7 +2614,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bitte gib dr Reis e Name."
+            "value": "Bitte gib dr Kassä e Name."
           }
         }
       }
@@ -2724,7 +2724,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aktivi Reise"
+            "value": "Aktivi Kassä"
           }
         }
       }
@@ -2735,7 +2735,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abgschlosseni Reise"
+            "value": "Abgschlosseni Kassä"
           }
         }
       }
@@ -2746,7 +2746,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "No kei Reise aagleit."
+            "value": "No kei Kassä aagleit."
           }
         }
       }
@@ -2757,7 +2757,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reise"
+            "value": "Kassä"
           }
         }
       }

@@ -1,7 +1,7 @@
 import CoreData
 import SwiftUI
 
-/// Wurzel-Ansicht: entscheidet zwischen "no kei Reis" und der Haupt-Navigation.
+/// Wurzel-Ansicht: entscheidet zwischen Startbildschirm und Haupt-Navigation.
 struct RootView: View {
 
     @Environment(\.managedObjectContext) private var context

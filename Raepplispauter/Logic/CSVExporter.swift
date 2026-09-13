@@ -166,7 +166,7 @@ public enum CSVExporter {
                 partial.append(character)
             }
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        let stem = slug.isEmpty ? "Reise" : slug
+        let stem = slug.isEmpty ? "Kassae" : slug
         return "Raepplispauter-\(stem)-\(Formatters.fileDate.string(from: Date())).csv"
     }
 
