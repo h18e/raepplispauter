@@ -2,12 +2,16 @@ import Foundation
 
 /// Rechenregeln für prozentuale Aufteilungen über beliebig viele Personen.
 ///
-/// Wird an zwei Stellen gebraucht:
-/// * **Kostenschlüssel der Reise** – wer trägt welchen Anteil an allen Ausgaben
-/// * **Auslage einer Ausgabe** – wer hat wie viel davon bezahlt
+/// Zwei Verwendungen:
+/// * **Auslage einer Ausgabe** – wer hat wie viel davon bezahlt. Das ist die
+///   einzige Aufteilung, die sich noch von Hand einstellen lässt
+///   (`SplitEditorView`), weil sie im Alltag tatsächlich wechselt.
+/// * **Kostenanteil der Personen** – wer trägt wie viel an den gemeinsamen
+///   Ausgaben. Hier wird nur noch `equalShares(count:)` gebraucht: Geteilt wird
+///   immer gleichmässig durch die Anzahl Personen.
 ///
 /// Zentrale Zusage an die Bedienung: **Die Summe ist immer genau 100 %.**
-/// Wird ein Schieber bewegt, verteilt `adjust(_:to:in:)` den Rest proportional
+/// Wird ein Schieber bewegt, verteilt `adjust(_:to:at:)` den Rest proportional
 /// auf die übrigen Personen; 100 % können damit nie überschritten werden.
 public enum SplitCalculator {
 
@@ -80,29 +84,6 @@ public enum SplitCalculator {
             }
         }
         return result
-    }
-
-    /// Verteilt Anteile neu, nachdem eine Person dazugekommen oder weggefallen ist.
-    ///
-    /// Bestehende Verhältnisse bleiben erhalten, die neue Person bekommt ihren
-    /// gleichmässigen Anteil.
-    public static func distributeAfterInsert(_ values: [Double]) -> [Double] {
-        let count = values.count
-        guard count > 1 else { return equalShares(count: count) }
-
-        let fair = 100.0 / Double(count)
-        let existing = Array(values.dropLast())
-        let existingSum = existing.reduce(0, +)
-        let remaining = 100 - fair
-
-        var result: [Double]
-        if existingSum > 0 {
-            result = existing.map { $0 / existingSum * remaining }
-        } else {
-            result = Array(repeating: remaining / Double(existing.count), count: existing.count)
-        }
-        result.append(fair)
-        return normalise(result)
     }
 
     /// Summe einer Aufteilung (für Prüfungen und Anzeigen).

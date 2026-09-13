@@ -143,10 +143,6 @@ struct SettlementView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.textPrimary)
                         Spacer()
-                        Text("\(Money.formatPlain(balance.participant.costSharePercent, fractionDigits: 1)) %")
-                            .font(.caption2)
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.textTertiary)
                     }
 
                     detailRow(L.balancePaid,

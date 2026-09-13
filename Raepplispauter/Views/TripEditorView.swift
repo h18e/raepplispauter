@@ -2,8 +2,13 @@ import CloudKit
 import CoreData
 import SwiftUI
 
-/// Reise anlegen bzw. bearbeiten – inklusive Personen, Kostenschlüssel und der
-/// iCloud-Freigabe an die Mitreisenden.
+/// Kassä anlegen bzw. bearbeiten – inklusive Personen und der iCloud-Freigabe.
+///
+/// Gemeinsame Ausgaben werden immer gleichmässig auf alle Personen verteilt.
+/// Einen einstellbaren Kostenschlüssel gibt es bewusst nicht mehr: Er war ein
+/// Regler, den praktisch niemand verstellt, kostete aber bei jeder neuen Kassä
+/// eine Entscheidung. Wer *ausgelegt* hat, lässt sich weiterhin je Ausgabe frei
+/// aufteilen – das ist die Aufteilung, die im Alltag wirklich variiert.
 struct TripEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -41,7 +46,7 @@ struct TripEditorView: View {
             _myDraftID = State(initialValue: trip.id.flatMap { AppSettings.myParticipantID(forTrip: $0) })
         } else {
             // Neue Reise: eine leere Zeile als Startpunkt, weitere per "+".
-            _drafts = State(initialValue: [ParticipantDraft(name: "", costSharePercent: 100)])
+            _drafts = State(initialValue: [ParticipantDraft(name: "")])
             _myDraftID = State(initialValue: nil)
         }
     }
@@ -56,15 +61,13 @@ struct TripEditorView: View {
     private struct ParticipantDraft: Identifiable {
         let id: UUID
         var name: String
-        var costSharePercent: Double
         var colorIndex: Int
         /// Vorhandener Datensatz, falls die Person schon gespeichert ist.
         var existing: Participant?
 
-        init(name: String, costSharePercent: Double, colorIndex: Int = 0) {
+        init(name: String, colorIndex: Int = 0) {
             self.id = UUID()
             self.name = name
-            self.costSharePercent = costSharePercent
             self.colorIndex = colorIndex
             self.existing = nil
         }
@@ -72,7 +75,6 @@ struct TripEditorView: View {
         init(participant: Participant) {
             self.id = participant.id ?? UUID()
             self.name = participant.displayName
-            self.costSharePercent = participant.costSharePercent
             self.colorIndex = Int(participant.colorIndex)
             self.existing = participant
         }
@@ -90,33 +92,6 @@ struct TripEditorView: View {
     /// Bei abgeschlossener Reise bleiben die Inhalte gesperrt, damit die
     /// Abrechnung stabil bleibt. Nur der Status selbst ist umschaltbar.
     private var contentEditable: Bool { !isClosed }
-
-    private var snapshots: [ParticipantSnapshot] {
-        drafts.enumerated().map { index, draft in
-            ParticipantSnapshot(id: draft.id,
-                                name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                    ? L.participantPlaceholderNumbered(index + 1)
-                                    : draft.name,
-                                costSharePercent: Decimal(draft.costSharePercent),
-                                colorIndex: draft.colorIndex,
-                                sortIndex: index)
-        }
-    }
-
-    private var percentages: Binding<[Double]> {
-        Binding(
-            get: { drafts.map(\.costSharePercent) },
-            set: { values in
-                // Nur schreiben, wenn sich wirklich etwas ändert – sonst stösst
-                // jeder Schreibvorgang das nächste Neuzeichnen an und die
-                // Ansicht dreht sich im Kreis.
-                guard values != drafts.map(\.costSharePercent) else { return }
-                for (index, value) in values.enumerated() where drafts.indices.contains(index) {
-                    drafts[index].costSharePercent = value
-                }
-            }
-        )
-    }
 
     var body: some View {
         NavigationStack {
@@ -152,7 +127,6 @@ struct TripEditorView: View {
 
                 participantsSection
                 identitySection
-                costShareSection
 
                 if let trip, !isNew {
                     Section {
@@ -276,20 +250,13 @@ struct TripEditorView: View {
     }
 
     private func addParticipant() {
-        // Ohne `withAnimation`: Beim Sprung von einer auf zwei Personen blenden
-        // sich gleichzeitig zwei weitere Abschnitte ein (Zuordnung und
-        // Kostenschlüssel). Diese Umbauten zu animieren, während zugleich ein
-        // Textfeld den Fokus hält, ist die anfälligste Stelle der ganzen Maske.
-        var draft = ParticipantDraft(name: "", costSharePercent: 0)
+        // Ohne `withAnimation`: Beim Sprung von einer auf zwei Personen blendet
+        // sich der Abschnitt "Das bin ich" ein. Diesen Umbau zu animieren,
+        // während zugleich ein Textfeld den Fokus hält, ist die anfälligste
+        // Stelle der ganzen Maske.
+        var draft = ParticipantDraft(name: "")
         draft.colorIndex = drafts.count % Theme.participantPaletteSize
         drafts.append(draft)
-
-        // Neue Person bekommt ihren gleichmässigen Anteil, die übrigen werden
-        // proportional gestaucht – die Summe bleibt 100 %.
-        let values = SplitCalculator.distributeAfterInsert(drafts.map(\.costSharePercent))
-        for (index, value) in values.enumerated() where drafts.indices.contains(index) {
-            drafts[index].costSharePercent = value
-        }
     }
 
     private func deleteParticipants(at offsets: IndexSet) {
@@ -308,13 +275,8 @@ struct TripEditorView: View {
             return
         }
 
-        // Ebenfalls ohne Animation – beim Schritt von zwei auf eine Person
-        // verschwinden zwei Abschnitte gleichzeitig (siehe `addParticipant`).
+        // Ebenfalls ohne Animation – siehe `addParticipant`.
         drafts.remove(atOffsets: offsets)
-        let values = SplitCalculator.normalise(drafts.map(\.costSharePercent))
-        for (index, value) in values.enumerated() where drafts.indices.contains(index) {
-            drafts[index].costSharePercent = value
-        }
 
         // Zuordnung "das bin ich" mitziehen, falls die gewählte Person weg ist.
         if let myDraftID, !drafts.contains(where: { $0.id == myDraftID }) {
@@ -344,27 +306,6 @@ struct TripEditorView: View {
             } footer: {
                 Text(L.identityHint)
             }
-        }
-    }
-
-    // MARK: - Kostenschlüssel
-
-    private var costShareSection: some View {
-        Section {
-            if drafts.count < 2 {
-                Text(L.tripCostShareSingle)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.textTertiary)
-            } else {
-                SplitEditorView(participants: snapshots,
-                                percentages: percentages,
-                                isEnabled: contentEditable)
-                    .padding(.vertical, 4)
-            }
-        } header: {
-            Text(L.tripCostShare)
-        } footer: {
-            Text(L.tripCostShareHint)
         }
     }
 
@@ -488,17 +429,18 @@ struct TripEditorView: View {
         }
 
         // Leere Namenszeilen fallen lautlos weg – sie sind nur unfertige Eingaben.
-        var effective = drafts.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let effective = drafts.filter { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         guard !effective.isEmpty else {
             errorMessage = L.participantNeedsOne
             return
         }
 
-        // Kostenschlüssel nach dem Wegfallen leerer Zeilen erneut auf 100 % bringen.
-        let normalised = SplitCalculator.normalise(effective.map(\.costSharePercent))
-        for (index, value) in normalised.enumerated() where effective.indices.contains(index) {
-            effective[index].costSharePercent = value
-        }
+        // Gemeinsame Kosten werden gleichmässig getragen. Der Anteil hängt damit
+        // nur an der Anzahl Personen und wird bei jedem Speichern neu gesetzt –
+        // auch bei Kassä, die noch mit ungleichen Anteilen angelegt wurden.
+        // `equalShares` gleicht den Rundungsrest aus, damit die Summe bei
+        // krummen Teilungen (z. B. drei Personen) exakt 100 % ergibt.
+        let shares = SplitCalculator.equalShares(count: effective.count)
 
         let target: Trip
         if let trip {
@@ -529,16 +471,17 @@ struct TripEditorView: View {
         // auch bei einer frisch angelegten Reise gültig.
         for (index, draft) in effective.enumerated() {
             let cleanName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let share = shares.indices.contains(index) ? shares[index] : 0
             if let existing = draft.existing {
                 existing.name = cleanName
-                existing.costSharePercent = draft.costSharePercent
+                existing.costSharePercent = share
                 existing.sortIndex = Int16(index)
                 existing.colorIndex = Int16(draft.colorIndex % Theme.participantPaletteSize)
             } else {
                 let created = Participant.create(in: context,
                                                  trip: target,
                                                  name: cleanName,
-                                                 costSharePercent: draft.costSharePercent,
+                                                 costSharePercent: share,
                                                  id: draft.id)
                 created.sortIndex = Int16(index)
                 created.colorIndex = Int16(draft.colorIndex % Theme.participantPaletteSize)

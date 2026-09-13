@@ -106,22 +106,6 @@ final class SplitCalculatorTests: XCTestCase {
         assertSums100(values)
     }
 
-    // MARK: - Person dazu / weg
-
-    func testDistributeAfterInsertGivesNewPersonFairShare() {
-        // Aus [50, 50] wird durch eine dritte Person [33.3, 33.3, 33.4]-artig.
-        let values = SplitCalculator.distributeAfterInsert([50, 50, 0])
-        assertSums100(values)
-        XCTAssertEqual(values[2], 33.3, accuracy: 0.2)
-    }
-
-    func testDistributeAfterInsertKeepsExistingRatio() {
-        // Bestehendes Verhältnis 3:1 bleibt nach dem Hinzufügen erhalten.
-        let values = SplitCalculator.distributeAfterInsert([75, 25, 0])
-        assertSums100(values)
-        XCTAssertEqual(values[0] / values[1], 3, accuracy: 0.1)
-    }
-
     // MARK: - Gültigkeit
 
     func testIsValid() {

@@ -13,6 +13,12 @@
 		Passend dazu muss in Raepplispauter/App/AppConfiguration.swift
 		`syncMode` auf `.localOnly` stehen.
 
+		Aus demselben Grund fehlt hier die App-Group des Widgets: Auch sie
+		ist dem bezahlten Programm vorbehalten. Im Lokalmodus lässt sich das
+		Target RaepplispauterWidget deshalb nicht bauen – im Schema abwählen
+		(Product ▸ Scheme ▸ Edit Scheme ▸ Build) oder auf den iCloud-Betrieb
+		wechseln. Die App selbst läuft davon unberührt weiter.
+
 		Für den vollen iCloud-Betrieb (bezahltes Apple Developer Program):
 		Build Setting „Code Signing Entitlements“ auf
 		Config/Raepplispauter.entitlements umstellen und `syncMode` auf

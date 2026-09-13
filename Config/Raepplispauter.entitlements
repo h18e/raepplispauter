@@ -20,5 +20,13 @@
 	     Archivieren automatisch). -->
 	<key>aps-environment</key>
 	<string>development</string>
+
+	<!-- App-Group für das Sperrbildschirm-Widget: App und Erweiterung sehen
+	     darüber dieselben UserDefaults. Muss mit WidgetSharing.appGroupID und
+	     Config/RaepplispauterWidget.entitlements übereinstimmen. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.ch.hebera.raepplispauter</string>
+	</array>
 </dict>
 </plist>

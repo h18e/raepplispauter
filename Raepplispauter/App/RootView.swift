@@ -1,3 +1,4 @@
+import Combine
 import CoreData
 import SwiftUI
 
@@ -18,14 +19,37 @@ struct RootView: View {
             if let trip = appState.resolveTrip(from: Array(trips)) {
                 MainTabView(trip: trip)
             } else {
-                NavigationStack {
-                    WelcomeView { showTripEditor = true }
-                        .navigationTitle(L.appName)
-                }
+                WelcomeView { showTripEditor = true }
             }
         }
         .sheet(isPresented: $showTripEditor) {
             TripEditorView(trip: nil)
+        }
+        // Das Sperrbildschirm-Widget liest eine Momentaufnahme, die hier
+        // nachgeführt wird. Vier Anlässe, bei denen sie veralten könnte:
+        .onAppear { refreshWidget() }
+        .onChange(of: appState.selectedTripID) { refreshWidget() }
+        .onChange(of: appState.identityRevision) { refreshWidget() }
+        // Jede gespeicherte Änderung – auch die vom Gerät der anderen Person,
+        // die über CloudKit hereinkommt.
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            refreshWidget()
+        }
+    }
+
+    /// Rechnet die Kassä durch und legt das Ergebnis für das Widget ab.
+    ///
+    /// Der Sprung über `Task { @MainActor in … }` ist nötig, weil diese Methode
+    /// auch aus der Speicher-Benachrichtigung heraus aufgerufen wird – die kann
+    /// von einer Hintergrund-Queue kommen (CloudKit-Import), während der
+    /// View-Kontext und `AppState` an den Haupt-Thread gebunden sind. Dasselbe
+    /// Muster verwendet der AppDelegate beim Annehmen einer Freigabe.
+    private func refreshWidget() {
+        Task { @MainActor in
+            let trip = appState.resolveTrip(from: Array(trips))
+            WidgetSnapshotWriter.refresh(for: trip,
+                                         myParticipantID: trip.flatMap { appState.myParticipantID(in: $0) },
+                                         in: context)
         }
     }
 }
@@ -35,6 +59,11 @@ struct RootView: View {
 /// Statt eines einzelnen grossen Symbols liegt hier ein Wasserzeichen aus
 /// vielen kleinen Ausgaben-Symbolen über die ganze Fläche – das zeigt auf einen
 /// Blick, worum es in der App geht, ohne aufdringlich zu sein.
+///
+/// App-Name und Untertitel stehen bewusst **im Inhalt** und nicht als
+/// `navigationTitle`: Ein Navigationstitel trägt keinen Untertitel, und ein
+/// zweites Mal derselbe Name in der Leiste wäre nur Dopplung. Ohne
+/// Navigationsleiste steht der Block ausserdem frei in der Mitte.
 struct WelcomeView: View {
 
     let action: () -> Void
@@ -45,6 +74,18 @@ struct WelcomeView: View {
             ExpenseWatermarkBackground().ignoresSafeArea()
 
             VStack(spacing: 14) {
+                VStack(spacing: 4) {
+                    Text(L.appName)
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(Theme.textPrimary)
+
+                    Text(L.appTagline)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 12)
+
                 Text(L.balanceNoTrip)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)

@@ -32,6 +32,11 @@ targets:
     platform: iOS
     sources:
       - path: Raepplispauter
+      # Wird von App *und* Widget gebraucht (WidgetSharing.swift).
+      - path: Shared
+    dependencies:
+      - target: RaepplispauterWidget
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ch.hebera.raepplispauter
@@ -51,13 +56,38 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
-        # Bewusst NO: Sonst schreibt Xcode bei jedem Bauen selbst in
-        # Localizable.xcstrings und kollidiert mit Tools/generate-xcstrings.py,
-        # das den Katalog aus Strings.swift erzeugt. Die App braucht die
-        # Extraktion nicht – jeder Text hat im Code seinen defaultValue.
+        # Bewusst NO: Die App braucht keinen String-Katalog – jeder Text hat
+        # im Code seinen defaultValue (siehe Resources/Strings.swift). Stünde
+        # hier YES, legte Xcode bei jedem Bauen eine Localizable.xcstrings an,
+        # die dann bei jedem git pull kollidiert.
         SWIFT_EMIT_LOC_STRINGS: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         # DEVELOPMENT_TEAM hier eintragen oder in Xcode unter "Signing & Capabilities" wählen.
+        DEVELOPMENT_TEAM: ""
+
+  # Sperrbildschirm-Widget. Liest die Momentaufnahme, die die App in die
+  # App-Group schreibt – siehe Shared/WidgetSharing.swift.
+  RaepplispauterWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: RaepplispauterWidget
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.hebera.raepplispauter.widget
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Config/RaepplispauterWidget-Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Räpplispauter
+        CODE_SIGN_ENTITLEMENTS: Config/RaepplispauterWidget.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SKIP_INSTALL: YES
+        SWIFT_EMIT_LOC_STRINGS: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: ""
 
   RaepplispauterTests:

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Nur die Schlüssel, die Xcode nicht selber generiert – alles Übrige
+		kommt aus GENERATE_INFOPLIST_FILE = YES.
+	-->
+
+	<!--
+		Sagt iOS, dass dieses Bundle eine WidgetKit-Erweiterung ist. Ohne
+		diesen Eintrag taucht das Widget in der Auswahl gar nicht erst auf.
+		Eine NSExtensionPrincipalClass braucht es nicht: Der Einstieg läuft
+		über das @main-WidgetBundle in RaepplispauterWidget.swift.
+	-->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+
+	<!-- Wie die App: Dark Mode ist das primäre Erscheinungsbild. -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+</dict>
+</plist>

@@ -17,6 +17,7 @@ Projekt bereits vorbereitet ist; offen ist, was nur du erledigen kannst.
 | **Datensparsamkeit** | Kein eigener Server, kein Konto, keine Analyse; alles liegt lokal bzw. in der privaten iCloud des Nutzers |
 | **Datenschutzerklärung** | Fertiger Entwurf in `PRIVACY.md` |
 | **Offline-Tauglichkeit** | Voll nutzbar ohne Netz – ein häufiger Ablehnungsgrund bei Reise-Apps |
+| **Widget ohne eigene Daten** | Das Sperrbildschirm-Widget liest nur eine Momentaufnahme aus der App-Group; es greift weder aufs Netz noch auf den Datenspeicher zu |
 
 ## 2. Vor der Einreichung erledigen
 
@@ -43,12 +44,28 @@ Container `iCloud.ch.hebera.raepplispauter` öffnen und
 **Deploy Schema to Production** ausführen. Ohne das findet die App-Store-Version
 keine Datenbank – auch wenn die Entwicklungsversion einwandfrei läuft.
 
-### 2.4 Version und Signierung
+### 2.4 App-Group für das Widget registrieren
+Das Sperrbildschirm-Widget liest seine Daten über eine App-Group. Diese muss im
+[Developer-Portal](https://developer.apple.com/account/resources/identifiers)
+existieren und beiden App-IDs zugeordnet sein:
+
+| | |
+|---|---|
+| App-Group | `group.ch.hebera.raepplispauter` |
+| App-ID | `ch.hebera.raepplispauter` |
+| App-ID des Widgets | `ch.hebera.raepplispauter.widget` |
+
+Bei automatischer Signierung legt Xcode beides beim ersten Bauen selbst an –
+prüfen lässt es sich unter *Signing & Capabilities* je Target. Fehlt die Gruppe,
+baut die App trotzdem; das Widget bleibt dann einfach leer, **ohne
+Fehlermeldung**. Nach dem Einrichten einmal auf dem Gerät testen.
+
+### 2.5 Version und Signierung
 * `MARKETING_VERSION` und `CURRENT_PROJECT_VERSION` setzen
 * `DEVELOPMENT_TEAM` gefüllt, automatische Signierung aktiv
 * `aps-environment` wechselt beim Archivieren automatisch auf `production`
 
-### 2.5 Datenschutzerklärung veröffentlichen
+### 2.6 Datenschutzerklärung veröffentlichen
 `PRIVACY.md` ausfüllen, unter einer öffentlichen URL ablegen und diese in App
 Store Connect eintragen. Zusätzlich braucht es eine **Support-URL**.
 

@@ -26,6 +26,8 @@ public enum L {
     // MARK: - Allgemein
 
     public static let appName = t("app.name", "Räpplispauter")
+    /// Untertitel auf dem Startbildschirm, direkt unter dem App-Namen.
+    public static let appTagline = t("app.tagline", "Kes Gliir meh wäg dr Cholä")
     public static let save = t("common.save", "Spichere")
     public static let cancel = t("common.cancel", "Abbräche")
     public static let delete = t("common.delete", "Lösche")
@@ -222,12 +224,7 @@ public enum L {
     public static let tripCurrency = t("trip.currency", "Wärig vo dr Kassä")
     public static let tripPeople = t("trip.people", "Persone")
     public static let tripPeopleHint = t("trip.peopleHint",
-                                         "So viel Persone wie du wottsch. Zum Lösche nach links wüsche – Persone mit Uusgabe blybe gschützt.")
-    public static let tripCostShare = t("trip.costShare", "Choschteschlüssel")
-    public static let tripCostShareHint = t("trip.costShareHint",
-                                            "Wär trait wie viel vo de gmeinsame Choschte? D Summe isch immer genau 100 % – wenn du eine verschiebsch, passe sich di andere automatisch a.")
-    public static let tripCostShareSingle = t("trip.costShareSingle",
-                                              "Mit nume einere Person trait die logischerwys 100 %.")
+                                         "So viel Persone wie du wottsch. Zum Lösche nach links wüsche – Persone mit Uusgabe blybe gschützt. Gmeinsami Uusgabe wärde immer gliich uf aui uufteilt.")
     public static let tripClosedHint = t("trip.closedHint",
                                          "Bi ere abgschlossene Kassä chasch kei Usgabä meh erfasse, ändere oder lösche.")
     public static let tripClosedBlocked = t("trip.closedBlocked",

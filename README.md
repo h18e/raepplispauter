@@ -24,6 +24,7 @@ Die App kennt zwei Betriebsarten. **Ausgeliefert wird sie im iCloud-Modus.**
 | Erfassen, Bilanz, Logbuch, Auswertung, Abrechnung, CSV | ✅ | ✅ |
 | Sync zwischen Geräten | ✅ | ❌ |
 | Reise mit anderen teilen | ✅ | ❌ |
+| Sperrbildschirm-Widget | ✅ | ❌ (App-Group braucht das Programm) |
 | App läuft nach Installation | 1 Jahr | 7 Tage, dann neu installieren |
 
 ### Umschalten – zwei Stellen, beide müssen zusammenpassen
@@ -104,7 +105,9 @@ cd Raepplispauter && xcodegen generate
 ```
 Raepplispauter/
 ├─ Raepplispauter.xcodeproj
-├─ Config/                     Info.plist, Entitlements (iCloud + lokal)
+├─ Config/                     Info.plist, Entitlements (App + Widget)
+├─ Shared/                     Code, den App *und* Widget brauchen
+├─ RaepplispauterWidget/       Sperrbildschirm-Widget (Erweiterung)
 ├─ PRIVACY.md                  Entwurf der Datenschutzerklärung
 ├─ RELEASE.md                  Checkliste für den App Store
 └─ Raepplispauter/
@@ -117,6 +120,7 @@ Raepplispauter/
    ├─ Logic/                   Rundung, Aufteilung, Bilanz, Abrechnung, CSV
    ├─ Views/                   Bilanz, Logbuch, Auswertung, Abrechnung,
    │                           Reisen, Kategorien, Einstellungen
+   ├─ Widget/                  schreibt die Momentaufnahme fürs Widget
    └─ Resources/               Strings.swift, PrivacyInfo.xcprivacy, Assets
 ```
 
@@ -130,11 +134,16 @@ Eine Reise hat **beliebig viele Personen**. Jede Ausgabe hat zwei Dimensionen:
 
 | Dimension | Bedeutung | Wo eingestellt |
 |-----------|-----------|----------------|
-| **Zahler** | Wer hat *ausgelegt*? | pro Ausgabe |
-| **Kostenschlüssel** | Wer *trägt* die Kosten? | pro Reise, je Person ein Schieber |
+| **Zahler** | Wer hat *ausgelegt*? | pro Ausgabe, frei einstellbar |
+| **Kostenanteil** | Wer *trägt* die Kosten? | fix: gleichmässig durch die Anzahl Personen |
 
 * Zahler = **eine Person** → sie hat 100 % ausgelegt
 * Zahler = **Gmeinsam** → mehrere haben ausgelegt, nach den Schiebern der Ausgabe
+
+Getragen wird immer zu gleichen Teilen. Einen einstellbaren Kostenschlüssel gab
+es früher, er ist bewusst entfallen: ein Regler, den praktisch niemand
+verstellt, der aber bei jeder neuen Reise eine Entscheidung kostete. Was im
+Alltag wirklich wechselt – wer gerade ausgelegt hat – bleibt frei einstellbar.
 
 Die Bilanz je Person ist dann schlicht:
 
@@ -152,11 +161,14 @@ Saldo(Person) = ausgelegt(Person) − getragen(Person)
 
 ### Die 100-%-Regel
 
-Beide Schieberblöcke (Kostenschlüssel und Auslage) summieren sich **immer genau
-auf 100 %**. Bewegt man einen Schieber, verteilt `SplitCalculator` den Rest
-proportional auf die übrigen Personen – über 100 % zu kommen ist konstruktiv
-unmöglich, es braucht keine Fehlermeldung. Der Knopf *Glychmässig* verteilt
-gleichmässig.
+Die Schieber der Auslage summieren sich **immer genau auf 100 %**. Bewegt man
+einen, verteilt `SplitCalculator` den Rest proportional auf die übrigen Personen
+– über 100 % zu kommen ist konstruktiv unmöglich, es braucht keine
+Fehlermeldung. Der Knopf *Glychmässig* verteilt gleichmässig.
+
+Dieselbe Zusage gilt für die Kostenanteile: `SplitCalculator.equalShares` legt
+den Rundungsrest auf die ersten Personen, damit drei Personen exakt
+33.4 / 33.3 / 33.3 tragen und nicht 99.9 % in der Summe.
 
 ### Schlussabrechnung bei mehreren Personen
 
@@ -195,7 +207,7 @@ Die Zuordnung liegt bewusst **nur auf dem Gerät** (`UserDefaults`, Schlüssel
 ### Abgeschlossene Reisen
 
 Ist eine Reise abgeschlossen, sind Erfassen, Ändern und Löschen von Ausgaben
-gesperrt, ebenso Personen und Kostenschlüssel. Die Abrechnung bleibt damit
+gesperrt, ebenso die Personen. Die Abrechnung bleibt damit
 stabil. Über *Abrächnig → Reis wieder ufmache* lässt sich die Sperre lösen.
 
 
@@ -281,7 +293,72 @@ Voraussetzung ist `CKSharingSupported = YES` in der Info.plist.
 
 ---
 
-## 7. Texte ändern
+## 7. Sperrbildschirm-Widget
+
+Auf dem Sperrbildschirm lässt sich der eigene Saldo einblenden – in drei
+Grössen: eine Zeile über der Uhr (*inline*), rund (*circular*) und als Kachel
+(*rectangular*).
+
+**Hinzufügen am iPhone:** Sperrbildschirm gedrückt halten → *Anpassen* →
+*Sperrbildschirm* → auf den Bereich unter der Uhr tippen → *Räpplispauter*.
+
+### Wie die Daten hinkommen
+
+Das Widget ist eine eigene App-Erweiterung mit eigenem Prozess – es kann nicht
+einfach in den Speicher der App greifen. Der Weg ist deshalb:
+
+```
+App                                    Widget
+ │                                       │
+ │ jede Änderung (auch aus iCloud)       │
+ ▼                                       │
+WidgetSnapshotWriter                     │
+ │ rechnet Bilanz, formatiert Beträge    │
+ ▼                                       │
+App-Group (UserDefaults) ────────────────▶ liest nur noch fertige Werte
+ │
+ └─ WidgetCenter.reloadTimelines(…)
+```
+
+**Warum nicht Core Data im Widget?** Das wäre der naheliegende Weg, kostet aber
+viel: Die Speicherdateien müssten in den App-Group-Container umziehen (samt
+Migration bestehender Reisen), das Datenmodell wäre im Widget nochmals nötig,
+und CloudKit müsste aus einer Erweiterung heraus laufen. Für drei Zahlen auf
+dem Sperrbildschirm ist das zu viel Angriffsfläche – ein Fehler im Widget
+könnte dann die Kassä-Daten beschädigen. Mit der Momentaufnahme bleibt der
+Datenspeicher unberührt.
+
+Die Beträge stehen **fertig formatiert** in der Momentaufnahme. Formatiert wird
+in `Money` im App-Target; würde das Widget selbst rechnen, könnten
+Sperrbildschirm und App verschiedene Zahlen zeigen.
+
+### Was nötig ist
+
+| Stelle | Wert |
+|---|---|
+| App-Group | `group.ch.hebera.raepplispauter` |
+| Bundle-ID des Widgets | `ch.hebera.raepplispauter.widget` |
+| Entitlements App | `Config/Raepplispauter.entitlements` |
+| Entitlements Widget | `Config/RaepplispauterWidget.entitlements` |
+| Kennung im Code | `WidgetSharing.appGroupID` |
+
+Alle vier müssen dieselbe App-Group nennen. Ändert man sie an einer Stelle,
+findet das Widget die Daten der App nicht mehr – es zeigt dann stumm seinen
+leeren Zustand, es gibt keine Fehlermeldung.
+
+> **App-Groups setzen das bezahlte Apple Developer Program voraus** – wie
+> iCloud. Im Lokalmodus (gratis Apple-ID) lässt sich das Widget-Target nicht
+> signieren; es muss dann im Schema abgewählt werden. Die App selbst läuft
+> davon unberührt.
+
+### Ohne „Das bin ich" kein persönlicher Saldo
+
+Ist auf dem Gerät nicht festgelegt, welche Person hier sitzt, kann das Widget
+keinen persönlichen Saldo zeigen – irgendeine Person zu wählen wäre geraten. Es
+zeigt dann *„Wär bisch du?"* und die Gesamtsumme.
+
+
+## 8. Texte ändern
 
 Alle UI-Texte stehen in `Raepplispauter/Resources/Strings.swift` – und nur dort.
 Text ändern, speichern, bauen. Mehr ist nicht nötig.
@@ -310,7 +387,7 @@ Soll die App später übersetzt werden: `SWIFT_EMIT_LOC_STRINGS` auf `YES`, den
 
 ---
 
-## 8. Tests
+## 9. Tests
 
 `RaepplispauterTests` deckt die Berechnungslogik ab (⌘U in Xcode):
 
@@ -323,7 +400,7 @@ Soll die App später übersetzt werden: `SWIFT_EMIT_LOC_STRINGS` auf `YES`, den
 
 ---
 
-## 9. Bekannte Einschränkungen
+## 10. Bekannte Einschränkungen
 
 * **Währungen** sind auf jene begrenzt, für die die EZB einen Referenzkurs
   publiziert (siehe `Currencies.supported`) – für alles andere gäbe es keine

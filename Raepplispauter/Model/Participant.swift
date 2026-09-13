@@ -1,17 +1,24 @@
 import CoreData
 import Foundation
 
-/// Eine Person, die an einer Reise teilnimmt.
+/// Eine Person, die zu einer Kassä gehört.
 ///
-/// Eine Reise kennt beliebig viele Personen. Jede trägt einen Anteil an den
-/// gemeinsamen Kosten (`costSharePercent`); die Summe über alle Personen einer
-/// Reise ergibt immer genau 100 % – dafür sorgt `SplitCalculator`.
+/// Eine Kassä kennt beliebig viele Personen. Gemeinsame Ausgaben werden
+/// gleichmässig auf alle verteilt: `costSharePercent` ist deshalb immer
+/// `100 / Anzahl Personen` und wird beim Speichern der Kassä gesetzt
+/// (`SplitCalculator.equalShares`), nicht von Hand eingestellt.
+///
+/// Das Feld bleibt trotzdem erhalten, statt die Gleichteilung fest
+/// einzurechnen: Es steht so im CloudKit-Schema, und ein Attribut zu entfernen
+/// hiesse, das Schema zu ändern und alle bestehenden Daten zu migrieren. Die
+/// Berechnung (`BalanceCalculator`) arbeitet weiterhin mit den Prozentwerten
+/// und käme damit auch mit ungleichen Anteilen aus älteren Kassä zurecht.
 @objc(Participant)
 public final class Participant: NSManagedObject, Identifiable {
 
     @NSManaged public var id: UUID?
     @NSManaged public var name: String?
-    /// Kostenanteil in Prozent (0…100).
+    /// Kostenanteil in Prozent (0…100). Wird beim Speichern gleichmässig gesetzt.
     @NSManaged public var costSharePercent: Double
     /// Reihenfolge in Listen und Auswertungen.
     @NSManaged public var sortIndex: Int16

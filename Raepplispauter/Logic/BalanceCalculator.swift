@@ -53,9 +53,11 @@ public struct BalanceResult: Equatable, Sendable {
 /// * *Zahler* beschreibt, **wer ausgelegt** hat. Entweder eine einzelne Person
 ///   (100 %) oder mehrere, aufgeteilt nach den Anteilen der Ausgabe.
 ///
-/// * *Kostenschlüssel* beschreibt, **wer trägt**: Jede Person der Reise hat einen
+/// * *Kostenanteil* beschreibt, **wer trägt**: Jede Person der Kassä hat einen
 ///   Prozentsatz (`Participant.costSharePercent`), die Summe ergibt immer 100 %.
-///   Standard ist die gleichmässige Verteilung.
+///   In der App ist dieser Anteil immer gleichmässig verteilt; die Rechnung
+///   selbst bleibt bewusst allgemein, damit ältere Kassä mit ungleichen
+///   Anteilen weiterhin korrekt abgerechnet werden.
 ///
 /// Daraus folgt die Bilanz: `netto(Person) = ausgelegt(Person) − getragen(Person)`.
 ///
