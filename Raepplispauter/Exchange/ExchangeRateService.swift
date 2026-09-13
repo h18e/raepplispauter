@@ -5,13 +5,13 @@ public struct CurrencyConversion: Equatable, Sendable {
     public let originalAmount: Decimal
     public let originalCurrency: String
     public let tripCurrency: String
-    /// Betrag in der Reisewährung (2 Nachkommastellen).
+    /// Betrag in der Kassä-Währung (2 Nachkommastellen).
     public let amountInTripCurrency: Decimal
     /// Betrag in CHF, auf 5 Rappen gerundet.
     public let amountInCHF: Decimal
     /// Verwendeter Kurs Ausgabewährung → CHF (inkl. allfälligem Aufschlag).
     public let rateToCHF: Decimal
-    /// Verwendeter Kurs Reisewährung → CHF (inkl. allfälligem Aufschlag).
+    /// Verwendeter Kurs Kassä-Währung → CHF (inkl. allfälligem Aufschlag).
     public let rateTripToCHF: Decimal
     public let rateDate: Date
     public let source: RateSource
@@ -97,7 +97,7 @@ public final class ExchangeRateService {
 
     // MARK: - Umrechnen
 
-    /// Rechnet einen Betrag in Reisewährung **und** CHF um.
+    /// Rechnet einen Betrag in Kassä-Währung **und** CHF um.
     ///
     /// Fehlt der Kurs des gewünschten Tages im Cache, wird einmalig ein
     /// Netzabruf versucht (`allowNetwork`). Schlägt auch das fehl, greift die
@@ -207,7 +207,7 @@ public final class ExchangeRateService {
         if let earlier = store.latestRates(onOrBefore: day) {
             return RateLookup(rates: earlier, source: .ecbCached)
         }
-        // Ausgabe liegt vor dem ältesten bekannten Kurs (z. B. Reise nachträglich
+        // Ausgabe liegt vor dem ältesten bekannten Kurs (z. B. Kassä nachträglich
         // erfasst): dann der jüngste bekannte Kurs, klar als Cache markiert.
         if let newest = store.newestRates() {
             return RateLookup(rates: newest, source: .ecbCached)

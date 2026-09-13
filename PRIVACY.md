@@ -18,7 +18,7 @@ Benutzerkonten, keine Werbung, kein Tracking und keine Analyse-Werkzeuge.
 
 ## Welche Daten die App verarbeitet
 
-Alle Daten, die Sie erfassen – Reisen, Namen der Mitreisenden, Kategorien,
+Alle Daten, die Sie erfassen – Kassä, Namen der Beteiligten, Kategorien,
 Ausgabenbeträge, Verwendungszwecke, Datum und Uhrzeit – werden **auf Ihrem
 Gerät** gespeichert.
 
@@ -32,8 +32,8 @@ Personen geteilt werden.
 * Der Anbieter dieser App hat **keinen Zugriff** auf diese Daten.
 * Betreiber der iCloud ist Apple; es gelten die
   [Apple-Datenschutzrichtlinien](https://www.apple.com/legal/privacy/de-ww/).
-* Teilen Sie eine Reise, erhalten die von Ihnen eingeladenen Personen Zugriff
-  auf genau diese Reise – solange, bis Sie die Freigabe beenden.
+* Teilen Sie eine Kassä, erhalten die von Ihnen eingeladenen Personen Zugriff
+  auf genau diese Kassä – solange, bis Sie die Freigabe beenden.
 * Deaktivieren Sie iCloud, bleiben die Daten ausschliesslich lokal.
 
 ## Verbindungen nach aussen
@@ -50,15 +50,15 @@ Netzwerkverbindungen.
 
 ## Daten, die das Gerät nicht verlassen
 
-Neben den Reisedaten speichert die App lokal:
+Neben den Kassä-Daten speichert die App lokal:
 
-* Ihre Einstellungen (Kursaufschlag, zuletzt gewählte Reise, Gerätename)
+* Ihre Einstellungen (Kursaufschlag, zuletzt gewählte Kassä, Gerätename)
 * ein Änderungsprotokoll, das anzeigt, welche Änderungen von einem anderen Gerät
   eingegangen sind
 
 ## Löschung
 
-Löschen Sie eine Reise in der App, wird sie auch aus iCloud entfernt. Löschen Sie
+Löschen Sie eine Kassä in der App, wird sie auch aus iCloud entfernt. Löschen Sie
 die App vom Gerät, werden alle lokalen Daten entfernt; in iCloud gespeicherte
 Daten können Sie über die iOS-Einstellungen unter *Apple-Account → iCloud →
 Verwalten* entfernen.

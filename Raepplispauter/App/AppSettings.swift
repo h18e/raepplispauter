@@ -12,7 +12,7 @@ public enum AppSettings {
         static let lastRateRefresh = "lastRateRefresh"
         static let selectedTripID = "selectedTripID"
         static let deviceLabel = "deviceLabel"
-        /// Präfix für "wär bin ich" – je Reise ein eigener Eintrag.
+        /// Präfix für "wär bin ich" – je Kassä ein eigener Eintrag.
         static let myParticipantPrefix = "myParticipant."
     }
 
@@ -35,7 +35,7 @@ public enum AppSettings {
         set { defaults.set(newValue, forKey: Key.lastRateRefresh) }
     }
 
-    /// Zuletzt gewählte Reise (UUID-String), damit die App sofort die richtige Bilanz zeigt.
+    /// Zuletzt gewählte Kassä (UUID-String), damit die App sofort die richtige Bilanz zeigt.
     public static var selectedTripID: String? {
         get { defaults.string(forKey: Key.selectedTripID) }
         set { defaults.set(newValue, forKey: Key.selectedTripID) }
@@ -64,7 +64,7 @@ public enum AppSettings {
 
     // MARK: - "Das bin ich"
 
-    /// Welche Person der Reise sitzt an diesem Gerät?
+    /// Welche Person der Kassä sitzt an diesem Gerät?
     ///
     /// Bewusst **gerätelokal** und nicht im Datenmodell:
     /// * Die Antwort ist auf jedem Gerät eine andere – im geteilten Datensatz

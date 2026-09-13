@@ -54,7 +54,7 @@ public struct PayerBreakdownRow: Identifiable, Equatable, Sendable {
     public var id: UUID { participant.id }
 }
 
-/// Vollständige Auswertung einer Reise – Grundlage für Abrechnung und CSV.
+/// Vollständige Auswertung einer Kassä – Grundlage für Abrechnung und CSV.
 public struct TripReport: Sendable {
     public let tripCurrency: String
     public let participants: [ParticipantSnapshot]
@@ -65,7 +65,7 @@ public struct TripReport: Sendable {
     public let categories: [CategoryBreakdownRow]
     public let payers: [PayerBreakdownRow]
     public let expenseCount: Int
-    /// Anzahl Ausgaben ohne gültigen Wechselkurs (nur Reisewährung verwertbar).
+    /// Anzahl Ausgaben ohne gültigen Wechselkurs (nur Kassä-Währung verwertbar).
     public let provisionalCount: Int
 }
 
@@ -123,7 +123,7 @@ public enum SettlementCalculator {
         return Settlement(transfers: transfers, currencyCode: currency)
     }
 
-    /// Erstellt die komplette Auswertung einer Reise.
+    /// Erstellt die komplette Auswertung einer Kassä.
     public static func report(snapshots: [ExpenseSnapshot],
                               participants: [ParticipantSnapshot],
                               tripCurrency: String) -> TripReport {
@@ -135,7 +135,7 @@ public enum SettlementCalculator {
 
         // --- Kategorien ---------------------------------------------------
         // Reihenfolge nach erstem Auftreten, damit sie der Kategorienliste der
-        // Reise folgt und nicht bei jeder Neuberechnung springt.
+        // Kassä folgt und nicht bei jeder Neuberechnung springt.
         var categoryOrder: [String] = []
         var categoryData: [String: (row: CategoryBreakdownRow, key: String)] = [:]
 

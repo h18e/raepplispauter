@@ -23,7 +23,7 @@ Die App kennt zwei Betriebsarten. **Ausgeliefert wird sie im iCloud-Modus.**
 | Apple-Account | **Apple Developer Program (99 $/Jahr)** | gratis Apple-ID reicht |
 | Erfassen, Bilanz, Logbuch, Auswertung, Abrechnung, CSV | ✅ | ✅ |
 | Sync zwischen Geräten | ✅ | ❌ |
-| Reise mit anderen teilen | ✅ | ❌ |
+| Kassä mit anderen teilen | ✅ | ❌ |
 | Sperrbildschirm-Widget | ✅ | ❌ (App-Group braucht das Programm) |
 | App läuft nach Installation | 1 Jahr | 7 Tage, dann neu installieren |
 
@@ -58,7 +58,7 @@ Einstellungen. Abschaltbar über `AppConfiguration.allowsAutomaticLocalFallback`
 ### Datenbestand beim Wechsel
 
 Beide Modi benutzen dieselbe Datei (`private.sqlite`). Wer vom Lokal- in den
-iCloud-Modus wechselt, **behält seine erfassten Reisen**; sie werden beim ersten
+iCloud-Modus wechselt, **behält seine erfassten Kassä**; sie werden beim ersten
 Start hochgeladen.
 
 
@@ -119,7 +119,7 @@ Raepplispauter/
    ├─ Exchange/                EZB-Kurse: Feed, Cache, Umrechnung, Nachtrag
    ├─ Logic/                   Rundung, Aufteilung, Bilanz, Abrechnung, CSV
    ├─ Views/                   Bilanz, Logbuch, Auswertung, Abrechnung,
-   │                           Reisen, Kategorien, Einstellungen
+   │                           Kassä, Kategorien, Einstellungen
    ├─ Widget/                  schreibt die Momentaufnahme fürs Widget
    └─ Resources/               Strings.swift, PrivacyInfo.xcprivacy, Assets
 ```
@@ -130,7 +130,7 @@ und ist deshalb vollständig unit-testbar (`RaepplispauterTests`).
 
 ## 3. Das Rechenmodell (wichtig zu verstehen)
 
-Eine Reise hat **beliebig viele Personen**. Jede Ausgabe hat zwei Dimensionen:
+Eine Kassä hat **beliebig viele Personen**. Jede Ausgabe hat zwei Dimensionen:
 
 | Dimension | Bedeutung | Wo eingestellt |
 |-----------|-----------|----------------|
@@ -142,7 +142,7 @@ Eine Reise hat **beliebig viele Personen**. Jede Ausgabe hat zwei Dimensionen:
 
 Getragen wird immer zu gleichen Teilen. Einen einstellbaren Kostenschlüssel gab
 es früher, er ist bewusst entfallen: ein Regler, den praktisch niemand
-verstellt, der aber bei jeder neuen Reise eine Entscheidung kostete. Was im
+verstellt, der aber bei jeder neuen Kassä eine Entscheidung kostete. Was im
 Alltag wirklich wechselt – wer gerade ausgelegt hat – bleibt frei einstellbar.
 
 Die Bilanz je Person ist dann schlicht:
@@ -178,15 +178,15 @@ Bei n Personen ergibt das **höchstens n−1 Zahlungen**.
 
 ### Kategorien
 
-Kategorien gehören zur Reise, nicht zum Gerät – sie wandern beim Teilen mit.
-Beim Anlegen einer Reise entsteht ein Startsatz (Unterkunft, Restaurant,
+Kategorien gehören zur Kassä, nicht zum Gerät – sie wandern beim Teilen mit.
+Beim Anlegen einer Kassä entsteht ein Startsatz (Unterkunft, Restaurant,
 Läbesmittel, ÖV, Outo, Sightseeing); eigene lassen sich jederzeit ergänzen
 (auch direkt beim Erfassen einer Ausgabe), umbenennen, einfärben und – solange
 keine Ausgabe sie verwendet – löschen.
 
 ### „Das bin ich"
 
-Die App fragt einmal pro Reise, welche Person an diesem Gerät sitzt. Danach:
+Die App fragt einmal pro Kassä, welche Person an diesem Gerät sitzt. Danach:
 
 * zeigt die Bilanz die Zahlungen aus eigener Sicht („Du zahlsch Beat" statt
   „Anna → Beat"), und die eigenen Zahlungen stehen zuoberst
@@ -194,7 +194,7 @@ Die App fragt einmal pro Reise, welche Person an diesem Gerät sitzt. Danach:
 * ist die eigene Zeile in der Personenliste mit „du" markiert
 
 Die Zuordnung liegt bewusst **nur auf dem Gerät** (`UserDefaults`, Schlüssel
-`myParticipant.<Reise-UUID>`), nicht im Datenmodell:
+`myParticipant.<Kassä-UUID>`), nicht im Datenmodell:
 
 * Auf dem Gerät der Partnerin ist die Antwort eine andere – im geteilten
   Datensatz gäbe es gar keinen eindeutigen Wert.
@@ -202,13 +202,13 @@ Die Zuordnung liegt bewusst **nur auf dem Gerät** (`UserDefaults`, Schlüssel
   der Veröffentlichung noch änderbar.
 * Es wird keine iCloud-Kennung gespeichert, nur eine App-interne UUID.
 
-Ändern lässt sie sich jederzeit in den Reise-Einstellungen unter „Wär bisch du?".
+Ändern lässt sie sich jederzeit in den Kassä-Einstellungen unter „Wär bisch du?".
 
-### Abgeschlossene Reisen
+### Abgeschlossene Kassä
 
-Ist eine Reise abgeschlossen, sind Erfassen, Ändern und Löschen von Ausgaben
+Ist eine Kassä abgeschlossen, sind Erfassen, Ändern und Löschen von Ausgaben
 gesperrt, ebenso die Personen. Die Abrechnung bleibt damit
-stabil. Über *Abrächnig → Reis wieder ufmache* lässt sich die Sperre lösen.
+stabil. Über *Abrächnig → Kassä wieder ufmache* lässt sich die Sperre lösen.
 
 
 ## 4. Wechselkurse (EZB)
@@ -251,13 +251,13 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 
 | Store | CloudKit-Datenbank | Inhalt |
 |-------|--------------------|--------|
-| `private.sqlite` | private | Reisen, die man selber angelegt hat |
-| `shared.sqlite` | shared | Reisen, die der Partner geteilt hat |
+| `private.sqlite` | private | Kassä, die man selber angelegt hat |
+| `shared.sqlite` | shared | Kassä, die der Partner geteilt hat |
 
 **Ablauf**
 
-1. **Einladen** – In der Reise „Mit em Partner teile“ tippen.
-   `NSPersistentCloudKitContainer.share(_:to:)` verschiebt die Reise samt
+1. **Einladen** – In der Kassä „Mit em Partner teile“ tippen.
+   `NSPersistentCloudKitContainer.share(_:to:)` verschiebt die Kassä samt
    Personen, Kategorien und Ausgaben in eine eigene, geteilte CloudKit-Zone und
    erzeugt einen `CKShare`.
    Der `UICloudSharingController` verschickt die Einladung (Nachricht, Mail, Link).
@@ -268,11 +268,11 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 „nur iiglademi Lüt" (namentlich eingeladene Apple-Accounts) und „jede, wo dr Link
 het" wählen. Für eine Ferienabrechnung ist Letzteres meist praktischer: Link in
 die Gruppe schicken, fertig. Sobald die Freigabe einmal gespeichert ist, gibt es
-in den Reise-Einstellungen zusätzlich **„Iiladigs-Link verschicke"**, das den Link
+in den Kassä-Einstellungen zusätzlich **„Iiladigs-Link verschicke"**, das den Link
 direkt an Nachrichten, Mail, WhatsApp & Co. übergibt.
 
 3. **Betrieb** – Beide Geräte schreiben in dieselbe Zone. Neue Ausgaben landen
-   automatisch in der Zone ihrer Reise (`context.assign(_:to:)` sorgt dafür, dass
+   automatisch in der Zone ihrer Kassä (`context.assign(_:to:)` sorgt dafür, dass
    sie im richtigen Store liegen).
 
 Voraussetzung ist `CKSharingSupported = YES` in der Info.plist.
@@ -286,7 +286,7 @@ Voraussetzung ist `CKSharingSupported = YES` in der Info.plist.
 * Damit nichts *still* überschrieben wird, liest `ConflictAuditor` die
   **Persistent History** und protokolliert jede Änderung, die von einem anderen
   Gerät kommt: was, welche Felder, wann, von wem.
-  Sichtbar unter **Reise → Einstellungen → Sync-Protokoll**.
+  Sichtbar unter **Kassä → Einstellungen → Sync-Protokoll**.
 * Zusätzlich trägt jede Ausgabe `updatedAt` und `lastEditedBy`.
 * Das Protokoll ist bewusst gerätelokal (JSON-Datei) – würde es synchronisiert,
   löste jeder Eintrag wieder eine Änderung aus.
@@ -322,7 +322,7 @@ App-Group (UserDefaults) ────────────────▶ lie
 
 **Warum nicht Core Data im Widget?** Das wäre der naheliegende Weg, kostet aber
 viel: Die Speicherdateien müssten in den App-Group-Container umziehen (samt
-Migration bestehender Reisen), das Datenmodell wäre im Widget nochmals nötig,
+Migration bestehender Kassä), das Datenmodell wäre im Widget nochmals nötig,
 und CloudKit müsste aus einer Erweiterung heraus laufen. Für drei Zahlen auf
 dem Sperrbildschirm ist das zu viel Angriffsfläche – ein Fehler im Widget
 könnte dann die Kassä-Daten beschädigen. Mit der Momentaufnahme bleibt der

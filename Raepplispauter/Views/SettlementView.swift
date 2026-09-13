@@ -2,7 +2,7 @@ import CoreData
 import SwiftUI
 import UIKit
 
-/// Schlussabrechnung am Reiseende: wer zahlt wem wie viel, Detailzahlen je Person
+/// Schlussabrechnung am Ende vo dr Kassä: wer zahlt wem wie viel, Detailzahlen je Person
 /// und CSV-Export über die iOS-Freigabefunktion.
 struct SettlementView: View {
 

@@ -1,9 +1,9 @@
 import Foundation
 
-/// Erzeugt den CSV-Export einer Reise für die iOS-Freigabefunktion.
+/// Erzeugt den CSV-Export einer Kassä für die iOS-Freigabefunktion.
 ///
 /// Aufbau der Datei (vier Blöcke, durch Leerzeilen getrennt):
-/// 1. **Einzeltransaktionen** – jede Ausgabe mit Original-, Reise- und CHF-Betrag,
+/// 1. **Einzeltransaktionen** – jede Ausgabe mit Original-, Kassä- und CHF-Betrag,
 ///    Kurs, Kursdatum, Kursquelle sowie einer Spalte je Person mit deren Auslage
 /// 2. **Kategorie-Summen**
 /// 3. **Bilanz je Person** – Auslage, Kostenanteil, Saldo

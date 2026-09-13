@@ -8,9 +8,9 @@ import Foundation
 /// Beim CloudKit-*Sharing* liegen die Daten in zwei verschiedenen Datenbanken:
 ///
 /// * **Private Database** – alles, was *dieses* Gerät selber angelegt hat
-///   (bei uns: Reisen, die man selber erstellt und dann einlädt)
+///   (bei uns: Kassä, die man selber erstellt und dann einlädt)
 /// * **Shared Database** – alles, was ein *anderer* iCloud-Account mit einem geteilt hat
-///   (bei uns: die Reise, die der Partner erstellt und eingeladen hat)
+///   (bei uns: die Kassä, die der Partner erstellt und eingeladen hat)
 ///
 /// `NSPersistentCloudKitContainer` bildet das mit **zwei SQLite-Stores** ab, die
 /// dasselbe Modell verwenden. Genau deshalb funktioniert das Szenario "zwei
@@ -55,9 +55,9 @@ public final class PersistenceController {
     /// true, wenn `.cloudKit` gewünscht war, aber auf `.localOnly` zurückgefallen wurde.
     public let didFallBackToLocal: Bool
 
-    /// Store für selbst angelegte Reisen (private CloudKit-Datenbank).
+    /// Store für selbst angelegte Kassä (private CloudKit-Datenbank).
     public private(set) var privateStore: NSPersistentStore?
-    /// Store für Reisen, die der Partner-Account geteilt hat (shared CloudKit-Datenbank).
+    /// Store für Kassä, die der Partner-Account geteilt hat (shared CloudKit-Datenbank).
     /// Im Lokalmodus immer `nil`.
     public private(set) var sharedStore: NSPersistentStore?
 

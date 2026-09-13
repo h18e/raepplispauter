@@ -4,7 +4,7 @@ import SwiftUI
 /// Logbuch: chronologische, filter- und sortierbare Liste aller Ausgaben
 /// mit Bearbeiten und Löschen.
 ///
-/// Ist die Reise abgeschlossen, sind Erfassen, Ändern und Löschen gesperrt.
+/// Ist die Kassä abgeschlossen, sind Erfassen, Ändern und Löschen gesperrt.
 struct LogbookView: View {
 
     @ObservedObject var trip: Trip

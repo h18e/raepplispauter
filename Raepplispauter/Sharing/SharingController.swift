@@ -2,7 +2,7 @@ import CloudKit
 import CoreData
 import Foundation
 
-/// Steuert das CloudKit-Sharing einer Reise zwischen **zwei getrennten iCloud-Accounts**.
+/// Steuert das CloudKit-Sharing einer Kassä zwischen **zwei getrennten iCloud-Accounts**.
 ///
 /// ## Ablauf in drei Schritten
 ///
@@ -11,13 +11,13 @@ import Foundation
 /// über `expenses` verknüpften Ausgaben) aus der Default-Zone in eine **eigene,
 /// geteilte CloudKit-Zone** und legt dafür einen `CKShare` an. Der Share wird über
 /// `UICloudSharingController` als iCloud-Einladung verschickt (Nachricht, Mail,
-/// Link). Das passiert einmalig pro Reise.
+/// Link). Das passiert einmalig pro Kassä.
 ///
 /// **2. Annehmen (Gerät des Partners)**
 /// Tippt der Partner auf den Einladungslink, ruft iOS
 /// `application(_:userDidAcceptCloudKitShareWith:)` auf. Dort wird
 /// `acceptShareInvitations(from:into:)` mit dem **shared Store** aufgerufen.
-/// Danach taucht die Reise auf dem Partnergerät im shared Store auf – als wäre
+/// Danach taucht die Kassä auf dem Partnergerät im shared Store auf – als wäre
 /// sie lokal, inklusive Schreibrechten.
 ///
 /// **3. Laufender Betrieb**
@@ -47,7 +47,7 @@ public final class SharingController: ObservableObject {
     /// Im Lokalmodus gibt es kein CloudKit – sämtliche Sharing-Funktionen sind aus.
     public var isLocalOnly: Bool { persistence.isLocalOnly }
 
-    /// Bestehender Share einer Reise, falls sie bereits geteilt wurde.
+    /// Bestehender Share einer Kassä, falls sie bereits geteilt wurde.
     public func existingShare(for trip: Trip) -> CKShare? {
         guard !isLocalOnly else { return nil }
         return try? container.fetchShares(matching: [trip.objectID])[trip.objectID]
@@ -58,18 +58,18 @@ public final class SharingController: ObservableObject {
         return existingShare(for: trip) != nil || persistence.isInSharedStore(trip)
     }
 
-    /// Bin ich Eigentümer der Reise (habe ich sie erstellt) oder Teilnehmer?
+    /// Bin ich Eigentümer der Kassä (habe ich sie erstellt) oder Teilnehmer?
     public func isOwner(of trip: Trip) -> Bool {
         !persistence.isInSharedStore(trip)
     }
 
-    /// Darf dieses Gerät die Reise bearbeiten? (Bei `.readOnly`-Shares nein.)
+    /// Darf dieses Gerät die Kassä bearbeiten? (Bei `.readOnly`-Shares nein.)
     public func canEdit(_ trip: Trip) -> Bool {
         guard !isLocalOnly else { return true }
         return container.canUpdateRecord(forManagedObjectWith: trip.objectID)
     }
 
-    /// Einladungs-Link der Reise.
+    /// Einladungs-Link der Kassä.
     ///
     /// Erst verfügbar, **nachdem** der Share tatsächlich in iCloud gespeichert
     /// wurde (also nach dem ersten Durchlauf der Freigabe-Oberfläche). Vorher ist
@@ -78,7 +78,7 @@ public final class SharingController: ObservableObject {
         existingShare(for: trip)?.url
     }
 
-    /// Anzeigenamen der Teilnehmer – für die Sharing-Karte in den Reise-Einstellungen.
+    /// Anzeigenamen der Teilnehmer – für die Sharing-Karte in den Kassä-Einstellungen.
     public func participantNames(for trip: Trip) -> [String] {
         guard let share = existingShare(for: trip) else { return [] }
         return share.participants.compactMap { participant in
@@ -103,7 +103,7 @@ public final class SharingController: ObservableObject {
 
     // MARK: - Einladen
 
-    /// Erstellt (oder holt) den `CKShare` einer Reise.
+    /// Erstellt (oder holt) den `CKShare` einer Kassä.
     ///
     /// Wichtig: Vor dem Teilen müssen alle Änderungen gespeichert sein, sonst
     /// wandern noch nicht gesicherte Ausgaben nicht in die geteilte Zone.
@@ -150,7 +150,7 @@ public final class SharingController: ObservableObject {
 
     // MARK: - Annehmen
 
-    /// Nimmt eine eingehende iCloud-Einladung an und legt die Reise im **shared Store** ab.
+    /// Nimmt eine eingehende iCloud-Einladung an und legt die Kassä im **shared Store** ab.
     public func accept(_ metadata: CKShare.Metadata) {
         guard !isLocalOnly else {
             lastError = L.sharingLocalMode

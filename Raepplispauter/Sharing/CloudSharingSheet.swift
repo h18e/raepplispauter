@@ -21,7 +21,7 @@ struct CloudSharingSheet: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UICloudSharingController {
         let controller = UICloudSharingController(share: share, container: container)
         controller.delegate = context.coordinator
-        // Alle Mitreisenden dürfen erfassen und bearbeiten (`allowReadWrite`).
+        // Alle Beteiligten dürfen erfassen und bearbeiten (`allowReadWrite`).
         //
         // Bei der Reichweite hat die Person die Wahl:
         // * `allowPrivate` – nur namentlich eingeladene Apple-Accounts

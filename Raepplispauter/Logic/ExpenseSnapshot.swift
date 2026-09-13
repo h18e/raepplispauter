@@ -40,7 +40,7 @@ public struct ExpenseSnapshot: Identifiable {
     /// Betrag in der Währung, in der er erfasst wurde.
     public let amountOriginal: Decimal
     public let currencyCode: String
-    /// Betrag in der Reisewährung.
+    /// Betrag in der Kassä-Währung.
     public let amountTrip: Decimal
     /// Betrag in CHF (5-Rappen-gerundet). `nil`, wenn kein Kurs vorlag.
     public let amountCHF: Decimal?

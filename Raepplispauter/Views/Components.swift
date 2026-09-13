@@ -22,7 +22,7 @@ struct SectionHeader: View {
     }
 }
 
-/// Betrag in **Reisewährung und CHF** – die Doppelanzeige ist in der ganzen App Pflicht.
+/// Betrag in **Kassä-Währung und CHF** – die Doppelanzeige ist in der ganzen App Pflicht.
 struct DualAmountView: View {
     let tripAmount: Decimal
     let tripCurrency: String

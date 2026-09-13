@@ -1,7 +1,7 @@
 import CoreData
 import SwiftUI
 
-/// Übersicht über alle Reisen – aktive und abgeschlossene – inklusive Auswahl,
+/// Übersicht über alle Kassä – aktive und abgeschlossene – inklusive Auswahl,
 /// Anlegen, Bearbeiten und Löschen.
 struct TripListView: View {
 

@@ -1,7 +1,7 @@
 import CoreData
 import Foundation
 
-/// Eine Reise – Wurzelobjekt für Personen, Kategorien und Ausgaben.
+/// Eine Kassä – Wurzelobjekt für Personen, Kategorien und Ausgaben.
 ///
 /// Wichtig für CloudKit-Sharing: Der `CKShare` wird immer auf dem *Trip* erstellt.
 /// Personen, Kategorien, Ausgaben und Zahlungsanteile hängen über Beziehungen
@@ -13,10 +13,10 @@ public final class Trip: NSManagedObject, Identifiable {
     @NSManaged public var name: String?
     @NSManaged public var startDate: Date?
     @NSManaged public var endDate: Date?
-    /// Landeswährung der Reise (ISO-4217, z. B. "EUR").
+    /// Landeswährung der Kassä (ISO-4217, z. B. "EUR").
     @NSManaged public var currencyCode: String?
     /// Status: abgeschlossen ja/nein (aktiv = false).
-    /// Ist eine Reise abgeschlossen, lassen sich keine Ausgaben mehr erfassen,
+    /// Ist eine Kassä abgeschlossen, lassen sich keine Ausgaben mehr erfassen,
     /// ändern oder löschen – die Abrechnung bleibt damit stabil.
     @NSManaged public var isClosed: Bool
     /// Zwischengespeicherter Sharing-Status für schnelle Anzeige (auch offline).
@@ -79,12 +79,12 @@ public final class Trip: NSManagedObject, Identifiable {
         participantList.first { $0.id == id }
     }
 
-    /// Darf an dieser Reise überhaupt noch etwas geändert werden?
+    /// Darf an dieser Kassä überhaupt noch etwas geändert werden?
     public var isEditable: Bool { !isClosed }
 
     // MARK: - Factory
 
-    /// Legt eine neue Reise an und weist sie explizit dem **privaten** Store zu.
+    /// Legt eine neue Kassä an und weist sie explizit dem **privaten** Store zu.
     ///
     /// Die Zuweisung ist zwingend, weil der Container zwei Stores führt (privat +
     /// geteilt); ohne `assign` wäre nicht definiert, in welchem Store das Objekt landet.

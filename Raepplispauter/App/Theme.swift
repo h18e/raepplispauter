@@ -41,7 +41,7 @@ public enum Theme {
 
     // MARK: - Paletten
 
-    /// Farben für Personen. Die Reise vergibt sie reihum, damit sich auch bei
+    /// Farben für Personen. Die Kassä vergibt sie reihum, damit sich auch bei
     /// vielen Teilnehmenden benachbarte Einträge gut unterscheiden lassen.
     private static let participantPalette: [Color] = [
         Color(red: 0.443, green: 0.663, blue: 0.976),   // Blau

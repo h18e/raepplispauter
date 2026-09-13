@@ -172,7 +172,7 @@ final class SettlementCalculatorTests: XCTestCase {
                                                  tripCurrency: "EUR")
         XCTAssertEqual(report.provisionalCount, 1)
         XCTAssertEqual(report.chfBalance.skippedCount, 1)
-        // Die Reisewährungs-Bilanz bleibt vollständig.
+        // Die Kassä-Währungs-Bilanz bleibt vollständig.
         XCTAssertEqual(report.tripBalance.total, Decimal(150))
     }
 }

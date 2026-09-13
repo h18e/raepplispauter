@@ -7,7 +7,7 @@ import SwiftUI
 /// Der Wechselkurs kommt – wenn möglich – aus dem lokalen Kurs-Cache; fehlt er,
 /// wird die Ausgabe als provisorisch markiert und später automatisch nachgerechnet.
 ///
-/// Ist die Reise abgeschlossen, lässt sich hier nichts mehr ändern.
+/// Ist die Kassä abgeschlossen, lässt sich hier nichts mehr ändern.
 struct ExpenseEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -84,7 +84,7 @@ struct ExpenseEditorView: View {
                                                            on: date)
     }
 
-    /// Reise abgeschlossen oder nur Leserechte am Share → nichts änderbar.
+    /// Kassä abgeschlossen oder nur Leserechte am Share → nichts änderbar.
     private var canEdit: Bool {
         trip.isEditable && SharingController.shared.canEdit(trip)
     }

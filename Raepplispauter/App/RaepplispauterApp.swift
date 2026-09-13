@@ -36,7 +36,7 @@ struct RaepplispauterApp: App {
 /// Nimmt CloudKit-Share-Einladungen entgegen.
 ///
 /// Tippt der Partner auf den Einladungslink (Nachricht/Mail), startet iOS die App
-/// und ruft genau diese Methode auf. `SharingController.accept(_:)` legt die Reise
+/// und ruft genau diese Methode auf. `SharingController.accept(_:)` legt die Kassä
 /// danach im **shared Store** ab – ab dann arbeiten beide Geräte auf demselben
 /// Datensatz.
 ///

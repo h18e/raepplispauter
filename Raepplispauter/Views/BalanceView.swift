@@ -2,7 +2,7 @@ import CoreData
 import SwiftUI
 
 /// Startbildschirm: zeigt beim App-Start sofort die aktuelle Bilanz der laufenden
-/// Reise – wer steht im Plus, wer im Minus, in Reisewährung **und** CHF.
+/// Kassä – wer steht im Plus, wer im Minus, in Kassä-Währung **und** CHF.
 struct BalanceView: View {
 
     @ObservedObject var trip: Trip
@@ -173,7 +173,7 @@ struct BalanceView: View {
         return mine + others
     }
 
-    /// Sucht zur Zahlung in Reisewährung den passenden CHF-Betrag.
+    /// Sucht zur Zahlung in Kassä-Währung den passenden CHF-Betrag.
     private func matchingCHFAmount(for transfer: Transfer, in report: TripReport) -> Decimal? {
         report.settlementCHF.transfers
             .first { $0.from.id == transfer.from.id && $0.to.id == transfer.to.id }?

@@ -1,12 +1,12 @@
 import CoreData
 import Foundation
 
-/// Eine einzelne Ausgabe innerhalb einer Reise.
+/// Eine einzelne Ausgabe innerhalb einer Kassä.
 ///
 /// Beträge werden dreifach abgelegt, damit alle Ansichten offline und ohne
 /// Neuberechnung funktionieren:
 /// 1. `amount` / `currencyCode` – exakt so, wie erfasst
-/// 2. `amountTrip`             – umgerechnet in die Reisewährung (2 Nachkommastellen)
+/// 2. `amountTrip`             – umgerechnet in die Kassä-Währung (2 Nachkommastellen)
 /// 3. `amountCHF`              – umgerechnet in CHF, auf 5 Rappen gerundet
 ///
 /// Die verwendeten Kurse werden zusammen mit Kursdatum und Quelle eingefroren,
@@ -24,7 +24,7 @@ public final class Expense: NSManagedObject, Identifiable {
     @NSManaged public var amountCHF: NSDecimalNumber?
     /// Kurs Ausgabewährung → CHF zum Erfassungsdatum.
     @NSManaged public var rateToCHF: NSDecimalNumber?
-    /// Kurs Reisewährung → CHF zum selben Datum (für die Anzeige in Reisewährung).
+    /// Kurs Kassä-Währung → CHF zum selben Datum (für die Anzeige in Kassä-Währung).
     @NSManaged public var rateTripToCHF: NSDecimalNumber?
     @NSManaged public var rateDate: Date?
     @NSManaged public var rateSourceRaw: String?
@@ -116,7 +116,7 @@ public final class Expense: NSManagedObject, Identifiable {
         expense.note = ""
         expense.amount = 0
         // Bei zwei Stores (privat/geteilt) muss eine neue Ausgabe explizit in
-        // denselben Store wie ihre Reise – sonst schlägt das Speichern fehl.
+        // denselben Store wie ihre Kassä – sonst schlägt das Speichern fehl.
         if let store = trip.objectID.persistentStore {
             context.assign(expense, to: store)
         }

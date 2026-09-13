@@ -3,12 +3,12 @@ import Combine
 import CoreData
 import SwiftUI
 
-/// Gerätezustand über alle Ansichten hinweg: welche Reise ist gewählt, wie steht
+/// Gerätezustand über alle Ansichten hinweg: welche Kassä ist gewählt, wie steht
 /// es um iCloud und die Wechselkurse.
 @MainActor
 public final class AppState: ObservableObject {
 
-    /// Aktuell angezeigte Reise (UUID). Wird in `AppSettings` gemerkt, damit die
+    /// Aktuell angezeigte Kassä (UUID). Wird in `AppSettings` gemerkt, damit die
     /// App beim Start sofort die richtige Bilanz zeigt.
     @Published public var selectedTripID: UUID? {
         didSet { AppSettings.selectedTripID = selectedTripID?.uuidString }
@@ -25,7 +25,7 @@ public final class AppState: ObservableObject {
         }
     }
 
-    /// Wählt die anzuzeigende Reise: die gemerkte, sonst die erste aktive, sonst irgendeine.
+    /// Wählt die anzuzeigende Kassä: die gemerkte, sonst die erste aktive, sonst irgendeine.
     public func resolveTrip(from trips: [Trip]) -> Trip? {
         if let selectedTripID, let match = trips.first(where: { $0.id == selectedTripID }) {
             return match
@@ -59,7 +59,7 @@ public final class AppState: ObservableObject {
     /// neu zeichnen. Die Werte selbst liegen in `AppSettings` (gerätelokal).
     @Published public private(set) var identityRevision = 0
 
-    /// Welche Person der Reise sitzt an diesem Gerät? `nil` = noch nicht gewählt.
+    /// Welche Person der Kassä sitzt an diesem Gerät? `nil` = noch nicht gewählt.
     public func myParticipantID(in trip: Trip) -> UUID? {
         guard let tripID = trip.id else { return nil }
         guard let stored = AppSettings.myParticipantID(forTrip: tripID) else { return nil }
@@ -78,7 +78,7 @@ public final class AppState: ObservableObject {
         identityRevision += 1
     }
 
-    /// Muss die Reise noch fragen, wer hier sitzt?
+    /// Muss die Kassä noch fragen, wer hier sitzt?
     /// Bei nur einer Person erübrigt sich die Frage.
     public func needsIdentityChoice(in trip: Trip) -> Bool {
         trip.participantList.count > 1 && myParticipantID(in: trip) == nil

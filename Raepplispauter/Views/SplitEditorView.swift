@@ -3,7 +3,7 @@ import SwiftUI
 /// Prozentuale Aufteilung über beliebig viele Personen – mit einem Schieber je Person.
 ///
 /// Wird zweimal verwendet:
-/// * **Kostenschlüssel der Reise** – wer trägt welchen Anteil
+/// * **Kostenschlüssel der Kassä** – wer trägt welchen Anteil
 /// * **Auslage einer Ausgabe** – wer hat wie viel bezahlt
 ///
 /// Die Summe bleibt **immer genau 100 %**: Wird ein Schieber bewegt, verteilt

@@ -2,7 +2,7 @@ import CoreData
 import SwiftUI
 
 /// Auswertung: Ausgaben aufgeschlüsselt nach Kategorie und Zahler –
-/// immer in Reisewährung **und** CHF.
+/// immer in Kassä-Währung **und** CHF.
 struct AnalysisView: View {
 
     @ObservedObject var trip: Trip

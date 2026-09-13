@@ -1,10 +1,10 @@
 import CoreData
 import SwiftUI
 
-/// Kategorien einer Reise verwalten: anlegen, umbenennen, Symbol und Farbe
+/// Kategorien einer Kassä verwalten: anlegen, umbenennen, Symbol und Farbe
 /// wählen, löschen.
 ///
-/// Kategorien gehören zur Reise und wandern damit beim Teilen mit – beide
+/// Kategorien gehören zur Kassä und wandern damit beim Teilen mit – beide
 /// Geräte sehen dieselbe Liste.
 struct CategoryEditorView: View {
 

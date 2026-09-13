@@ -3,9 +3,9 @@ import Foundation
 
 /// Eine Ausgabenkategorie.
 ///
-/// Kategorien gehören zur Reise (nicht zum Gerät) – dadurch wandern sie beim
+/// Kategorien gehören zur Kassä (nicht zum Gerät) – dadurch wandern sie beim
 /// CloudKit-Sharing mit und beide Geräte sehen dieselbe Liste. Beim Anlegen einer
-/// Reise wird ein Satz Standardkategorien erzeugt; eigene lassen sich jederzeit
+/// Kassä wird ein Satz Standardkategorien erzeugt; eigene lassen sich jederzeit
 /// ergänzen, umbenennen und – solange keine Ausgabe sie verwendet – löschen.
 @objc(ExpenseCategory)
 public final class ExpenseCategory: NSManagedObject, Identifiable {
@@ -16,7 +16,7 @@ public final class ExpenseCategory: NSManagedObject, Identifiable {
     @NSManaged public var symbolName: String?
     @NSManaged public var colorIndex: Int16
     @NSManaged public var sortIndex: Int16
-    /// true = beim Anlegen der Reise mitgeliefert.
+    /// true = beim Anlegen der Kassä mitgeliefert.
     @NSManaged public var isBuiltIn: Bool
     @NSManaged public var createdAt: Date?
     @NSManaged public var trip: Trip?
@@ -66,7 +66,7 @@ public final class ExpenseCategory: NSManagedObject, Identifiable {
 
     // MARK: - Standardkategorien
 
-    /// Wird beim Anlegen einer Reise angelegt. Frei erweiterbar und löschbar –
+    /// Wird beim Anlegen einer Kassä angelegt. Frei erweiterbar und löschbar –
     /// das ist nur der Startsatz, damit man sofort erfassen kann.
     public struct Template {
         public let name: String

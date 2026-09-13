@@ -20,7 +20,7 @@ public struct PersonBalance: Equatable, Identifiable, Sendable {
     }
 }
 
-/// Gesamtbilanz einer Reise in **einer** Währung.
+/// Gesamtbilanz einer Kassä in **einer** Währung.
 public struct BalanceResult: Equatable, Sendable {
     public let currencyCode: String
     public let total: Decimal
@@ -110,7 +110,7 @@ public enum BalanceCalculator {
                              skippedCount: skippedCount)
     }
 
-    /// Bilanz in der Reisewährung.
+    /// Bilanz in der Kassä-Währung.
     public static func tripBalance(snapshots: [ExpenseSnapshot],
                                    participants: [ParticipantSnapshot],
                                    tripCurrency: String) -> BalanceResult {

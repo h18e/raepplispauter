@@ -2,8 +2,8 @@ import Foundation
 
 /// Betriebsart der Datenhaltung.
 public enum SyncMode: String {
-    /// Volle Funktion: Core Data + CloudKit, Reisen lassen sich mit den
-    /// Mitreisenden teilen. Braucht ein **kostenpflichtiges Apple Developer
+    /// Volle Funktion: Core Data + CloudKit, Kassä lassen sich mit den
+    /// Beteiligten teilen. Braucht ein **kostenpflichtiges Apple Developer
     /// Program**, weil nur damit iCloud-Entitlements signiert werden können.
     case cloudKit
 

@@ -15,7 +15,7 @@ struct TripEditorView: View {
     @Environment(\.managedObjectContext) private var context
     @EnvironmentObject private var appState: AppState
 
-    /// `nil` = neue Reise anlegen.
+    /// `nil` = neue Kassä anlegen.
     let trip: Trip?
 
     @State private var name: String
@@ -45,7 +45,7 @@ struct TripEditorView: View {
             // Draft-Kennung entspricht bei bestehenden Personen der Participant-UUID.
             _myDraftID = State(initialValue: trip.id.flatMap { AppSettings.myParticipantID(forTrip: $0) })
         } else {
-            // Neue Reise: eine leere Zeile als Startpunkt, weitere per "+".
+            // Neue Kassä: eine leere Zeile als Startpunkt, weitere per "+".
             _drafts = State(initialValue: [ParticipantDraft(name: "")])
             _myDraftID = State(initialValue: nil)
         }
@@ -56,7 +56,7 @@ struct TripEditorView: View {
         let url: URL
     }
 
-    /// Bearbeitbare Person – funktioniert auch, solange die Reise noch gar nicht
+    /// Bearbeitbare Person – funktioniert auch, solange die Kassä noch gar nicht
     /// gespeichert ist.
     private struct ParticipantDraft: Identifiable {
         let id: UUID
@@ -89,7 +89,7 @@ struct TripEditorView: View {
 
     private var isNew: Bool { trip == nil }
 
-    /// Bei abgeschlossener Reise bleiben die Inhalte gesperrt, damit die
+    /// Bei abgeschlossener Kassä bleiben die Inhalte gesperrt, damit die
     /// Abrechnung stabil bleibt. Nur der Status selbst ist umschaltbar.
     private var contentEditable: Bool { !isClosed }
 
@@ -468,7 +468,7 @@ struct TripEditorView: View {
 
         // Bestehende aktualisieren, neue anlegen. Neue Personen übernehmen die
         // Kennung ihres Entwurfs – dadurch bleibt die Zuordnung "das bin ich"
-        // auch bei einer frisch angelegten Reise gültig.
+        // auch bei einer frisch angelegten Kassä gültig.
         for (index, draft) in effective.enumerated() {
             let cleanName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
             let share = shares.indices.contains(index) ? shares[index] : 0
@@ -490,7 +490,7 @@ struct TripEditorView: View {
 
         PersistenceController.shared.save()
 
-        // Zuordnung erst nach dem Speichern setzen – vorher hat eine neue Reise
+        // Zuordnung erst nach dem Speichern setzen – vorher hat eine neue Kassä
         // noch keine Kennung. Eine gelöschte oder leer gebliebene Person wird
         // dabei automatisch verworfen.
         let chosenID = myDraftID.flatMap { id in effective.contains { $0.id == id } ? id : nil }
