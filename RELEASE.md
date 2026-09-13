@@ -62,7 +62,9 @@ Fehlermeldung**. Nach dem Einrichten einmal auf dem Gerät testen.
 
 ### 2.5 Version und Signierung
 * `MARKETING_VERSION` und `CURRENT_PROJECT_VERSION` setzen
-* `DEVELOPMENT_TEAM` gefüllt, automatische Signierung aktiv
+* `Config/Local.xcconfig` angelegt und `DEVELOPMENT_TEAM` gefüllt (die Datei ist
+  git-ignoriert – auf einem frisch geklonten Rechner fehlt sie und muss aus
+  `Config/Local.xcconfig.example` erstellt werden), automatische Signierung aktiv
 * `aps-environment` wechselt beim Archivieren automatisch auf `production`
 
 ### 2.6 Datenschutzerklärung veröffentlichen

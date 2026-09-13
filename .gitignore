@@ -26,3 +26,8 @@ xcuserdata/
 # wieder in git landen, sonst kollidiert er bei jedem Pull mit dem Stand aus
 # Strings.swift. Erst wenn eine zweite Sprache dazukommt, wird er gebraucht.
 Raepplispauter/Resources/Localizable.xcstrings
+
+# Persönliche Signierungs-Einstellungen. Die Team-Kennung gehört zum
+# Entwickler-Account, nicht zum Projekt – siehe Config/Signing.xcconfig.
+# Vorlage: Config/Local.xcconfig.example
+Config/Local.xcconfig

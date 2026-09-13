@@ -1,0 +1,27 @@
+// Signierung – bewusst ausserhalb der Projektdatei.
+//
+// Die Team-Kennung ist *persönlich*: Sie gehört zu deinem Apple-Entwickler-
+// Account, nicht zum Projekt. Stünde sie in project.pbxproj, hätte das zwei
+// Nachteile:
+//
+//   1. Sie läge im öffentlichen Repository und wäre aus der Historie nicht
+//      mehr zu entfernen.
+//   2. Jedes Mal, wenn Xcode sie schreibt, wäre die Projektdatei lokal
+//      geändert – und der nächste `git pull` bräche mit
+//      "Your local changes would be overwritten by merge" ab.
+//
+// Darum steht sie in Config/Local.xcconfig. Diese Datei ist in .gitignore
+// eingetragen und bleibt auf deinem Rechner.
+//
+// EINRICHTEN (einmalig):
+//
+//     cp Config/Local.xcconfig.example Config/Local.xcconfig
+//
+// und dort die eigene Team-Kennung eintragen. Sie steht in Xcode unter
+// Settings ▸ Accounts ▸ (Account wählen) ▸ Team, oder im Entwicklerportal
+// unter Membership details.
+//
+// Das Fragezeichen bei #include? bedeutet: Fehlt die Datei, wird sie
+// übersprungen, statt den Build abzubrechen. Wer das Projekt nur ansehen
+// oder im Simulator bauen will, braucht sie also nicht.
+#include? "Local.xcconfig"

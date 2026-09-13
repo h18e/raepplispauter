@@ -68,14 +68,41 @@ Start hochgeladen.
 open Raepplispauter/Raepplispauter.xcodeproj
 ```
 
-Danach in Xcode setzen:
+### Signierung einrichten (einmalig)
 
-1. **Target „Raepplispauter“ → Signing & Capabilities → Team** auswählen.
-2. **Bundle Identifier** anpassen, falls `ch.hebera.raepplispauter` schon vergeben ist.
+Die Team-Kennung steht **nicht** in der Projektdatei, sondern in einer lokalen
+Datei, die git ignoriert:
+
+```bash
+cp Config/Local.xcconfig.example Config/Local.xcconfig
+```
+
+Dort die eigene Kennung eintragen (Xcode ▸ Settings ▸ Accounts ▸ Account wählen
+▸ Team – die Zeichenfolge in Klammern, etwa `A1B2C3D4E5`):
+
+```
+DEVELOPMENT_TEAM = A1B2C3D4E5
+```
+
+**Warum der Umweg?** Die Kennung gehört zum Entwickler-Account, nicht zum
+Projekt. Stünde sie in `project.pbxproj`, läge sie im öffentlichen Repository –
+und, praktisch wichtiger: Xcode schreibt sie beim Team-Auswählen dort hinein,
+womit die Datei lokal geändert wäre und jeder `git pull` mit
+*„Your local changes would be overwritten by merge"* abbräche. Über
+`Config/Signing.xcconfig` bleibt die Projektdatei unangetastet.
+
+Wählt man das Team trotzdem über die Xcode-Oberfläche aus, schreibt Xcode es
+wieder in die Projektdatei und der Effekt ist dahin. Also: nur
+`Config/Local.xcconfig` bearbeiten.
+
+### Weiteres in Xcode
+
+1. **Bundle Identifier** anpassen, falls `ch.hebera.raepplispauter` schon vergeben ist.
+   Betrifft alle drei Targets – App, Widget (`…​.widget`) und Tests (`…​.tests`).
 
 Die folgenden Punkte betreffen **nur den iCloud-Modus** (siehe Abschnitt 0):
 
-3. **iCloud-Container** prüfen: Die App erwartet `iCloud.ch.hebera.raepplispauter`.
+2. **iCloud-Container** prüfen: Die App erwartet `iCloud.ch.hebera.raepplispauter`.
    Wird ein anderer Container verwendet, müssen **zwei** Stellen angepasst werden:
    - `Config/Raepplispauter.entitlements`
    - `PersistenceController.cloudKitContainerID`
@@ -87,6 +114,29 @@ vorbereitet; Xcode zeigt sie nach dem Setzen des Teams automatisch an.
 > **Erster Start mit CloudKit:** Beim ersten Lauf legt der Container das
 > CloudKit-Schema in der Development-Umgebung an. Vor dem Verteilen an das zweite
 > Gerät im CloudKit-Dashboard **„Deploy Schema to Production“** ausführen.
+
+### Wenn `git pull` an der Projektdatei scheitert
+
+Xcode schreibt `project.pbxproj` beim Öffnen und Bauen um: Es sortiert
+Einstellungen alphabetisch, klammert Abschnitte anders und lässt Vorgabewerte
+weg. Inhaltlich ändert das nichts – die Datei sieht danach nur anders aus.
+Trotzdem gilt sie git als geändert und blockiert den nächsten Pull:
+
+```
+error: Your local changes to the following files would be overwritten by merge:
+	Raepplispauter.xcodeproj/project.pbxproj
+```
+
+Seit die Signierung ausgelagert ist, steckt in dieser Umformatierung **nichts
+Erhaltenswertes**. Sie lässt sich darum gefahrlos verwerfen:
+
+```bash
+git checkout -- Raepplispauter.xcodeproj/project.pbxproj
+git pull
+```
+
+Vor dem Verwerfen kurz `git status` – steht dort noch eine andere Datei, ist
+die separat anzusehen.
 
 ### Projekt neu generieren (optional)
 

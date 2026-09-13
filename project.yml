@@ -19,6 +19,12 @@ options:
   createIntermediateGroups: true
   developmentLanguage: de
 
+# Signierung liegt ausserhalb der Projektdatei – die Team-Kennung ist
+# persönlich und gehört nicht ins Repository. Siehe Config/Signing.xcconfig.
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -62,8 +68,6 @@ targets:
         # die dann bei jedem git pull kollidiert.
         SWIFT_EMIT_LOC_STRINGS: NO
         TARGETED_DEVICE_FAMILY: "1,2"
-        # DEVELOPMENT_TEAM hier eintragen oder in Xcode unter "Signing & Capabilities" wählen.
-        DEVELOPMENT_TEAM: ""
 
   # Sperrbildschirm-Widget. Liest die Momentaufnahme, die die App in die
   # App-Group schreibt – siehe Shared/WidgetSharing.swift.
@@ -88,7 +92,6 @@ targets:
         SKIP_INSTALL: YES
         SWIFT_EMIT_LOC_STRINGS: NO
         TARGETED_DEVICE_FAMILY: "1,2"
-        DEVELOPMENT_TEAM: ""
 
   RaepplispauterTests:
     type: bundle.unit-test

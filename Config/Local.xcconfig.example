@@ -1,0 +1,10 @@
+// Vorlage für Config/Local.xcconfig – kopieren und die eigene Kennung eintragen:
+//
+//     cp Config/Local.xcconfig.example Config/Local.xcconfig
+//
+// Die Kopie ist in .gitignore eingetragen und bleibt lokal.
+// Zu finden ist die Kennung in Xcode unter
+// Settings ▸ Accounts ▸ (Account wählen) ▸ Team – die Zeichenfolge in
+// Klammern hinter dem Teamnamen. Sie sieht aus wie A1B2C3D4E5.
+
+DEVELOPMENT_TEAM = HIER_DEINE_TEAM_KENNUNG
