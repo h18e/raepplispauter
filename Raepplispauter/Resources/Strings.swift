@@ -2,13 +2,21 @@ import Foundation
 
 /// Zentrale Sammlung **aller** UI-Texte (Bärndütsch).
 ///
-/// Aufbau: Jeder Text ist über `String(localized:defaultValue:)` an den String-Katalog
-/// `Localizable.xcstrings` angebunden. Der Schlüssel ist stabil, der bärndütsche Text
-/// steht als `defaultValue` direkt daneben – so bleibt die App auch dann vollständig
-/// beschriftet, wenn der Katalog (noch) keinen Eintrag hat.
+/// Aufbau: Jeder Text steht über `String(localized:defaultValue:)` mit einem stabilen
+/// Schlüssel und dem bärndütschen Text als `defaultValue` direkt beieinander.
 ///
-/// Neue Texte **immer hier** ergänzen, nie direkt in einer View schreiben.
-/// Danach `Tools/generate-xcstrings.py` laufen lassen, um den Katalog nachzuführen.
+/// Diese Datei ist die **einzige** Quelle der Texte. Einen String-Katalog
+/// (`Localizable.xcstrings`) gibt es bewusst nicht: Die App ist einsprachig, und ohne
+/// Katalogeintrag liefert Foundation genau den `defaultValue` – also denselben Text.
+/// Ein zusätzlicher Katalog wäre eine zweite, generierte Kopie derselben Texte und
+/// hat in der Vergangenheit bei jedem `git pull` Konflikte ausgelöst, weil Xcode ihn
+/// beim Bauen ebenfalls anfasst.
+///
+/// Neue Texte **immer hier** ergänzen, nie direkt in einer View schreiben. Sonst ist
+/// nichts zu tun – die Änderung ist sofort wirksam.
+///
+/// Kommt später eine zweite Sprache dazu, erzeugt Xcode den Katalog neu
+/// (`SWIFT_EMIT_LOC_STRINGS = YES`, danach Product ▸ Export Localizations).
 public enum L {
 
     private static func t(_ key: StaticString, _ value: String.LocalizationValue) -> String {

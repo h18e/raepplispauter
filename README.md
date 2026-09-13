@@ -8,7 +8,7 @@ Apple-Accounts.
 - Core Data + CloudKit (`NSPersistentCloudKitContainer`) mit CloudKit Sharing
 - Offline-First: lokal ist die Wahrheit, Sync läuft im Hintergrund
 - Kein eigener Server – ausschliesslich iCloud
-- UI-Texte in Bärndütsch, zentral in `Resources/Strings.swift` + `Localizable.xcstrings`
+- UI-Texte in Bärndütsch, zentral in `Resources/Strings.swift`
 - Deployment-Target: **iOS 26.0**
 - Für die App-Store-Veröffentlichung vorbereitet – siehe `RELEASE.md`
 
@@ -105,7 +105,6 @@ cd Raepplispauter && xcodegen generate
 Raepplispauter/
 ├─ Raepplispauter.xcodeproj
 ├─ Config/                     Info.plist, Entitlements (iCloud + lokal)
-├─ Tools/                      generate-xcstrings.py
 ├─ PRIVACY.md                  Entwurf der Datenschutzerklärung
 ├─ RELEASE.md                  Checkliste für den App Store
 └─ Raepplispauter/
@@ -118,8 +117,7 @@ Raepplispauter/
    ├─ Logic/                   Rundung, Aufteilung, Bilanz, Abrechnung, CSV
    ├─ Views/                   Bilanz, Logbuch, Auswertung, Abrechnung,
    │                           Reisen, Kategorien, Einstellungen
-   └─ Resources/               Strings.swift, Localizable.xcstrings,
-                               PrivacyInfo.xcprivacy, Assets
+   └─ Resources/               Strings.swift, PrivacyInfo.xcprivacy, Assets
 ```
 
 Die Schichten sind bewusst getrennt: `Logic/` kennt weder Core Data noch SwiftUI
@@ -285,22 +283,30 @@ Voraussetzung ist `CKSharingSupported = YES` in der Info.plist.
 
 ## 7. Texte ändern
 
-Alle UI-Texte stehen in `Raepplispauter/Resources/Strings.swift`. Nach einer
-Änderung den String-Katalog nachführen:
+Alle UI-Texte stehen in `Raepplispauter/Resources/Strings.swift` – und nur dort.
+Text ändern, speichern, bauen. Mehr ist nicht nötig.
 
-```bash
-python3 Tools/generate-xcstrings.py
+```swift
+public static let settlementCloseTrip = t("settlement.closeTrip", "Kassä abschliessä")
+//                                         └ Schlüssel (stabil)    └ angezeigter Text
 ```
 
-Das Skript liest die Parametertypen aus den Swift-Signaturen und setzt den
-passenden Platzhalter (`Int` → `%lld`, `String` → `%@`). Lässt sich ein
-Platzhalter nicht zuordnen, bricht es ab, statt zu raten – ein falscher
-Platzhalter führt zur Laufzeit zum Absturz, weil Foundation eine Zahl sonst
-als Zeiger liest.
+**Warum es keinen String-Katalog gibt.** Naheliegend wäre eine
+`Localizable.xcstrings` neben dieser Datei. Genau die hat aber laufend Ärger
+gemacht: Es ist eine *generierte* Kopie derselben Texte, und Xcode fasst sie beim
+Bauen an. Damit schrieben zwei Stellen in dieselbe versionierte Datei, und jedes
+`git pull` scheiterte an lokalen Änderungen.
 
-> **Hinweis:** `SWIFT_EMIT_LOC_STRINGS` steht bewusst auf `NO`. Sonst schreibt
-> Xcode bei jedem Bauen selbst in `Localizable.xcstrings` und der Katalog
-> kollidiert bei jedem `git pull`.
+Nötig ist der Katalog ohnehin erst ab der zweiten Sprache: Findet Foundation
+keinen Katalogeintrag, liefert `String(localized:defaultValue:)` den
+`defaultValue` zurück – also exakt den Text, der hier steht. Die App ist
+einsprachig (`developmentRegion = de`), der Katalog wäre reine Dopplung. Er ist
+deshalb entfernt, in `.gitignore` eingetragen und `SWIFT_EMIT_LOC_STRINGS` steht
+auf `NO`.
+
+Soll die App später übersetzt werden: `SWIFT_EMIT_LOC_STRINGS` auf `YES`, den
+`.gitignore`-Eintrag entfernen, dann legt Xcode den Katalog aus den
+`defaultValue`s selbst wieder an.
 
 ---
 
