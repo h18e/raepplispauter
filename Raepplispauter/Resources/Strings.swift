@@ -191,12 +191,12 @@ public enum L {
     public static let settlementBalanced = t("settlement.balanced", "Alles usglyche")
     public static let settlementExport = t("settlement.export", "CSV exportiere")
     public static let settlementExportFailed = t("settlement.exportFailed", "Dr Export het nid klappet.")
-    public static let settlementCloseTrip = t("settlement.closeTrip", "Kassä abschlüsse")
+    public static let settlementCloseTrip = t("settlement.closeTrip", "Kassä abschliessä")
     public static let settlementReopenTrip = t("settlement.reopenTrip", "Kassä wieder ufmache")
     public static let settlementClosedNotice = t("settlement.closedNotice", "Die Kassä isch abgschlosse.")
     public static let settlementDetails = t("settlement.details", "Detail")
     public static let settlementCloseConfirm = t("settlement.closeConfirm",
-                                                 "Kassä abschlüsse? Drufabe chasch kei Usgabä meh erfasse, ändere oder lösche.")
+                                                 "Kassä abschliessä? Drufabe chasch kei Usgabä meh erfasse, ändere oder lösche.")
 
     // MARK: - Kassä
 
