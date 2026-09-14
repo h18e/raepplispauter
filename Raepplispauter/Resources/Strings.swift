@@ -247,6 +247,13 @@ public enum L {
     public static let sharingManage = t("sharing.manage", "Teilnehmer verwalte")
     public static let sharingStop = t("sharing.stop", "Teile beände")
     public static let sharingSendLink = t("sharing.sendLink", "Iiladigs-Link verschicke")
+    public static let sharingSendLinkHint = t("sharing.sendLinkHint",
+                                              "Dr Link git jedere Person, wo ne het, Zuegang zu dere Kassä – au zum Ändere. Schick ne nume a Lüt, wo derzue ghöre.")
+    public static let sharingLinkFailed = t("sharing.linkFailed",
+                                            "Dr Link het nid chönne erstellt wärde. Prüef d iCloud-Verbindig und probier nomal.")
+    public static let sharingLinkOpen = t("sharing.linkOpen", "Link isch aktiv")
+    public static let sharingAppNeeded = t("sharing.appNeeded",
+                                           "Wichtig: D anderi Person bruucht d App scho uf em iPhone, susch öffnet dr Link nume ne Website.")
     public static let sharingSharedWith = t("sharing.sharedWith", "Teilt mit")
     public static let sharingNotShared = t("sharing.notShared", "No nid teilt")
     public static let sharingShared = t("sharing.shared", "Teilt")

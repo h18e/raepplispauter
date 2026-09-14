@@ -69,13 +69,9 @@ public final class SharingController: ObservableObject {
         return container.canUpdateRecord(forManagedObjectWith: trip.objectID)
     }
 
-    /// Einladungs-Link der Kassä.
-    ///
-    /// Erst verfügbar, **nachdem** der Share tatsächlich in iCloud gespeichert
-    /// wurde (also nach dem ersten Durchlauf der Freigabe-Oberfläche). Vorher ist
-    /// er `nil` – dann gibt es in der UI auch keinen Knopf zum Verschicken.
-    public func shareURL(for trip: Trip) -> URL? {
-        existingShare(for: trip)?.url
+    /// Wer darf über den Link beitreten? `.none` = nur namentlich Eingeladene.
+    public func linkIsOpen(for trip: Trip) -> Bool {
+        existingShare(for: trip)?.publicPermission == .readWrite
     }
 
     /// Anzeigenamen der Teilnehmer – für die Sharing-Karte in den Kassä-Einstellungen.
@@ -141,6 +137,52 @@ public final class SharingController: ObservableObject {
         }
     }
 
+    /// Erzeugt einen Einladungs-Link, den **jede Person mit dem Link** nutzen kann.
+    ///
+    /// ## Warum das nötig ist
+    ///
+    /// Ein frisch erstellter `CKShare` steht auf `publicPermission = .none`.
+    /// Das bedeutet: Herein kommt nur, wer vorher namentlich als Teilnehmer
+    /// eingetragen wurde. Ein solcher Link ist technisch gültig, aber für
+    /// niemanden freigeschaltet – beim Empfänger endet er mit
+    ///
+    ///   „Objekt nicht verfügbar. Die Person, der die Datei gehört, teilt diese
+    ///    nicht mehr oder dein Account ist nicht berechtigt, sie zu öffnen."
+    ///
+    /// Für einen verschickbaren Link muss die Reichweite deshalb ausdrücklich
+    /// auf `.readWrite` gesetzt **und** nach iCloud gespeichert werden. Das
+    /// Setzen allein genügt nicht: Es verändert nur die lokale Kopie des
+    /// Share-Datensatzes. `persistUpdatedShare(_:in:)` schreibt ihn zum Server
+    /// und zieht die lokalen Metadaten nach.
+    ///
+    /// Nebenbei wird dabei auch der in `makeShare(for:)` gesetzte Titel
+    /// gespeichert, der sonst nie beim Server ankäme.
+    public func makeLinkShare(for trip: Trip) async throws -> URL {
+        guard !isLocalOnly else { throw SharingError.localModeActive }
+        guard isOwner(of: trip) else { throw SharingError.notOwner }
+        guard let privateStore = persistence.privateStore else {
+            throw SharingError.shareUnavailable
+        }
+
+        let (share, _) = try await makeShare(for: trip)
+        share.publicPermission = .readWrite
+
+        let updated: CKShare = try await withCheckedThrowingContinuation { continuation in
+            container.persistUpdatedShare(share, in: privateStore) { updatedShare, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let updatedShare {
+                    continuation.resume(returning: updatedShare)
+                } else {
+                    continuation.resume(throwing: SharingError.shareUnavailable)
+                }
+            }
+        }
+
+        guard let url = updated.url else { throw SharingError.linkUnavailable }
+        return url
+    }
+
     /// Merkt am Trip, dass er geteilt ist (für schnelle Offline-Anzeige).
     public func markShared(_ trip: Trip, isShared: Bool) {
         guard trip.isShared != isShared else { return }
@@ -199,11 +241,17 @@ public enum SharingError: LocalizedError {
     case shareUnavailable
     /// Die App läuft im Lokalmodus – Teilen ist nicht möglich.
     case localModeActive
+    /// Nur wer die Kassä angelegt hat, kann die Reichweite des Links ändern.
+    case notOwner
+    /// iCloud hat noch keinen Link geliefert (z. B. kein Netz beim Speichern).
+    case linkUnavailable
 
     public var errorDescription: String? {
         switch self {
         case .shareUnavailable: return L.sharingCreateFailed
         case .localModeActive: return L.sharingLocalMode
+        case .notOwner: return L.sharingOnlyOwner
+        case .linkUnavailable: return L.sharingLinkFailed
         }
     }
 }

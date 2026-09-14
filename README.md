@@ -314,12 +314,34 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
 2. **Annehmen** – Der Partner tippt auf den Link, iOS ruft
    `application(_:userDidAcceptCloudKitShareWith:)` auf, die App ruft
    `acceptShareInvitations(from:into:)` mit dem *shared* Store auf.
-**Reichweite der Freigabe:** In der Apple-Freigabeoberfläche lässt sich zwischen
-„nur iiglademi Lüt" (namentlich eingeladene Apple-Accounts) und „jede, wo dr Link
-het" wählen. Für eine Ferienabrechnung ist Letzteres meist praktischer: Link in
-die Gruppe schicken, fertig. Sobald die Freigabe einmal gespeichert ist, gibt es
-in den Kassä-Einstellungen zusätzlich **„Iiladigs-Link verschicke"**, das den Link
-direkt an Nachrichten, Mail, WhatsApp & Co. übergibt.
+**Zwei Wege zum Einladen – und warum sie sich unterscheiden**
+
+| Knopf | Wer kommt herein |
+|---|---|
+| *Mit em Partner teile* | Apple-Freigabeoberfläche: namentlich eingeladene Apple-Accounts |
+| *Iiladigs-Link verschicke* | jede Person, die den Link hat |
+
+Der Unterschied steckt in `CKShare.publicPermission`. Ein frisch erstellter
+Share steht auf `.none` – herein kommt dann **nur**, wer vorher namentlich als
+Teilnehmer eingetragen wurde. Ein solcher Link ist technisch gültig, aber für
+niemanden freigeschaltet; beim Empfänger endet er mit
+
+> Objekt nicht verfügbar. Die Person, der die Datei gehört, teilt diese nicht
+> mehr oder dein Account ist nicht berechtigt, sie zu öffnen.
+
+`SharingController.makeLinkShare(for:)` setzt deshalb `publicPermission` auf
+`.readWrite` **und** speichert den Share über `persistUpdatedShare(_:in:)` nach
+iCloud. Das Setzen allein genügt nicht: Es ändert nur die lokale Kopie des
+Datensatzes. (Nebenbei kommt dabei auch der Titel der Einladung beim Server an,
+der sonst nie gespeichert würde.)
+
+> **Voraussetzung auf dem anderen Gerät:** Dort muss die App **installiert**
+> sein, sonst öffnet der Link nur eine iCloud-Website. Solange die App nicht im
+> App Store ist, heisst das: über TestFlight verteilen oder per Xcode
+> installieren. Und beide Geräte müssen dieselbe CloudKit-Umgebung benutzen –
+> eine per Xcode installierte App spricht mit *Development*, eine aus
+> TestFlight oder dem App Store mit *Production*. Eine Freigabe aus der einen
+> Umgebung ist in der anderen nicht sichtbar.
 
 3. **Betrieb** – Beide Geräte schreiben in dieselbe Zone. Neue Ausgaben landen
    automatisch in der Zone ihrer Kassä (`context.assign(_:to:)` sorgt dafür, dass

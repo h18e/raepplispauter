@@ -28,6 +28,7 @@ struct TripEditorView: View {
     @State private var shareTarget: ShareTarget?
     @State private var shareLink: ShareLinkTarget?
     @State private var isPreparingShare = false
+    @State private var isPreparingLink = false
     @State private var errorMessage: String?
     /// Welche Person sitzt an diesem Gerät? (Draft-Kennung, siehe `identitySection`)
     @State private var myDraftID: UUID?
@@ -375,16 +376,31 @@ struct TripEditorView: View {
                 }
                 .disabled(isPreparingShare)
 
-                // Einladungs-Link direkt weiterschicken (Nachrichten, WhatsApp,
-                // Mail …). Steht erst zur Verfügung, sobald die Freigabe einmal
-                // gespeichert wurde.
-                if let url = controller.shareURL(for: trip) {
-                    Button {
-                        shareLink = ShareLinkTarget(url: url)
-                    } label: {
+                // Einladungs-Link zum Weiterschicken (Nachrichten, WhatsApp,
+                // Mail …).
+                //
+                // Der Knopf holt den Link nicht bloss ab, sondern schaltet ihn
+                // vorher frei: Ein Share steht standardmässig auf "nur
+                // namentlich Iiglademi". Ein solcher Link liefe beim Empfänger
+                // ins Leere ("dein Account ist nicht berechtigt"). Deshalb läuft
+                // alles über `makeLinkShare(for:)`.
+                Button {
+                    Task { await prepareLink(for: trip) }
+                } label: {
+                    HStack {
                         Label(L.sharingSendLink, systemImage: "link")
+                        if isPreparingLink {
+                            Spacer()
+                            ProgressView()
+                        } else if controller.linkIsOpen(for: trip) {
+                            Spacer()
+                            Text(L.sharingLinkOpen)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.textTertiary)
+                        }
                     }
                 }
+                .disabled(isPreparingLink)
 
                 if isShared {
                     Button(role: .destructive) {
@@ -401,7 +417,28 @@ struct TripEditorView: View {
         } header: {
             Text(L.sharingSection)
         } footer: {
-            Text(isOwner ? L.sharingHint : L.sharingOnlyOwner)
+            if isOwner {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L.sharingHint)
+                    Text(L.sharingSendLinkHint)
+                    Text(L.sharingAppNeeded)
+                }
+            } else {
+                Text(L.sharingOnlyOwner)
+            }
+        }
+    }
+
+    /// Schaltet den Einladungs-Link frei und öffnet das Teilen-Blatt von iOS.
+    private func prepareLink(for trip: Trip) async {
+        isPreparingLink = true
+        defer { isPreparingLink = false }
+        do {
+            let url = try await SharingController.shared.makeLinkShare(for: trip)
+            SharingController.shared.markShared(trip, isShared: true)
+            shareLink = ShareLinkTarget(url: url)
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
