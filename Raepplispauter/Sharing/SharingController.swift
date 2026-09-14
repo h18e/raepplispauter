@@ -38,9 +38,17 @@ public final class SharingController: ObservableObject {
     private var persistence: PersistenceController { .shared }
     private var container: NSPersistentCloudKitContainer { persistence.container }
 
+    /// Letzter Fehler aus einem Vorgang, der **im Hintergrund** passiert ist –
+    /// vor allem das Annehmen einer Einladung. Solche Fehler haben keine
+    /// Oberfläche, in der sie erscheinen könnten; `RootView` zeigt sie deshalb
+    /// als Hinweis an. Ohne das scheitert das Annehmen stumm.
     @Published public private(set) var lastError: String?
 
     public init() {}
+
+    public func clearError() {
+        lastError = nil
+    }
 
     // MARK: - Status
 
@@ -194,6 +202,15 @@ public final class SharingController: ObservableObject {
 
     /// Nimmt eine eingehende iCloud-Einladung an und legt die Kassä im **shared Store** ab.
     public func accept(_ metadata: CKShare.Metadata) {
+        // Gleich zu Beginn protokollieren. Nur so lässt sich später
+        // unterscheiden, ob die Einladung gar nie ankam oder ob sie ankam und
+        // das Annehmen scheiterte – zwei Fehler mit demselben Symptom
+        // ("die Kassä erscheint nicht"), aber ganz verschiedenen Ursachen.
+        ConflictAuditor.shared.log(.init(date: Date(),
+                                         author: AppSettings.transactionAuthor,
+                                         kind: .info,
+                                         detail: L.sharingAcceptReceived))
+
         guard !isLocalOnly else {
             lastError = L.sharingLocalMode
             return

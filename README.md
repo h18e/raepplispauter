@@ -311,9 +311,29 @@ Die App führt **zwei** Core-Data-Stores auf demselben Modell:
    Personen, Kategorien und Ausgaben in eine eigene, geteilte CloudKit-Zone und
    erzeugt einen `CKShare`.
    Der `UICloudSharingController` verschickt die Einladung (Nachricht, Mail, Link).
-2. **Annehmen** – Der Partner tippt auf den Link, iOS ruft
-   `application(_:userDidAcceptCloudKitShareWith:)` auf, die App ruft
-   `acceptShareInvitations(from:into:)` mit dem *shared* Store auf.
+2. **Annehmen** – Die eingeladene Person tippt auf den Link, iOS übergibt die
+   Einladung an die App, die App ruft `acceptShareInvitations(from:into:)` mit
+   dem *shared* Store auf.
+
+   **An wen iOS die Einladung übergibt, hängt davon ab, ob die App Szenen
+   benutzt:**
+
+   | App | Methode |
+   |---|---|
+   | ohne Szenen | `UIApplicationDelegate.application(_:userDidAcceptCloudKitShareWith:)` |
+   | mit Szenen | `UIWindowSceneDelegate.windowScene(_:userDidAcceptCloudKitShareWith:)` |
+
+   Jede SwiftUI-App mit `WindowGroup` ist szenenbasiert. Die App-Delegate-
+   Methode allein wird also **nie** aufgerufen – die Einladung kommt an, wird
+   aber nirgends entgegengenommen, und die geteilte Kassä erscheint auf dem
+   zweiten Gerät nie. Das Symptom ist tückisch, weil alles davor funktioniert:
+   Der Link öffnet sich, iOS fragt „beitreten?", die App startet. Nur danach
+   passiert nichts.
+
+   Implementiert sind deshalb beide Wege – der Szenen-Weg, der greift, und der
+   App-Weg als Rückfall. Der `SceneDelegate` implementiert bewusst **nur** die
+   CloudKit-Methode: `scene(_:willConnectTo:options:)` würde den Fensteraufbau
+   übernehmen, den SwiftUI selbst erledigt, und die App bliebe leer.
 **Zwei Wege zum Einladen – und warum sie sich unterscheiden**
 
 | Knopf | Wer kommt herein |
@@ -348,6 +368,13 @@ der sonst nie gespeichert würde.)
    sie im richtigen Store liegen).
 
 Voraussetzung ist `CKSharingSupported = YES` in der Info.plist.
+
+**Wenn die geteilte Kassä nicht erscheint:** Auf dem Gerät der eingeladenen
+Person **Iistellige ▸ Sync-Protokoll** öffnen. Steht dort „Iiladig empfange",
+kam die Einladung an und das Annehmen ist das Problem – ein Fehler dazu steht
+direkt darunter. Steht dort nichts, wurde die Einladung nie übergeben; dann ist
+der Weg über den `SceneDelegate` zu prüfen. Fehler beim Annehmen zeigt die App
+zusätzlich als Hinweis an, sobald sie im Vordergrund ist.
 
 ---
 

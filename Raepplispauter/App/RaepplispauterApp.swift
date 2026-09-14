@@ -35,15 +35,57 @@ struct RaepplispauterApp: App {
 
 /// Nimmt CloudKit-Share-Einladungen entgegen.
 ///
-/// Tippt der Partner auf den Einladungslink (Nachricht/Mail), startet iOS die App
-/// und ruft genau diese Methode auf. `SharingController.accept(_:)` legt die Kassä
-/// danach im **shared Store** ab – ab dann arbeiten beide Geräte auf demselben
-/// Datensatz.
+/// ## Warum es hier zwei Wege gibt
 ///
-/// Voraussetzung: `CKSharingSupported = YES` in der Info.plist.
+/// Tippt die eingeladene Person auf den Link, übergibt iOS die Einladung an die
+/// App. **An wen genau, hängt davon ab, ob die App Szenen benutzt:**
+///
+/// * ohne Szenen → `UIApplicationDelegate.application(_:userDidAcceptCloudKitShareWith:)`
+/// * mit Szenen  → `UIWindowSceneDelegate.windowScene(_:userDidAcceptCloudKitShareWith:)`
+///
+/// Jede SwiftUI-App mit `WindowGroup` ist szenenbasiert (das Build-Setting
+/// `INFOPLIST_KEY_UIApplicationSceneManifest_Generation` erzeugt das Manifest).
+/// Die App-Delegate-Methode allein wird deshalb **nie** aufgerufen – die
+/// Einladung kam an, wurde aber nirgends entgegengenommen, und die geteilte
+/// Kassä tauchte auf dem zweiten Gerät nie auf.
+///
+/// Darum ist beides implementiert: der Szenen-Weg, der tatsächlich greift, und
+/// der App-Weg als Rückfalloption.
+///
+/// Voraussetzung in beiden Fällen: `CKSharingSupported = YES` in der Info.plist.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
+    /// Hängt den `SceneDelegate` an die Szene, die iOS gleich aufbaut.
+    ///
+    /// Übernommen wird die Konfiguration, die iOS aus dem Szenen-Manifest
+    /// bereits ermittelt hat – geändert wird nur die Delegate-Klasse. Würde man
+    /// hier eine frische `UISceneConfiguration` bauen, ginge die Szenen-Klasse
+    /// verloren, die SwiftUI für seine Fenster braucht.
     func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let configuration = connectingSceneSession.configuration
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+
+    /// Rückfall für den Fall, dass die App ohne Szenen läuft.
+    func application(_ application: UIApplication,
+                     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        Task { @MainActor in
+            SharingController.shared.accept(cloudKitShareMetadata)
+        }
+    }
+}
+
+/// Nimmt die Einladung auf dem Weg entgegen, den szenenbasierte Apps benutzen.
+///
+/// Bewusst **ohne** `scene(_:willConnectTo:options:)`: Diese Methode würde den
+/// Fensteraufbau übernehmen, den SwiftUI selbst erledigt – die App bliebe leer.
+/// Hier steht nur die eine Methode, die gebraucht wird.
+final class SceneDelegate: NSObject, UIWindowSceneDelegate {
+
+    func windowScene(_ windowScene: UIWindowScene,
                      userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
         Task { @MainActor in
             SharingController.shared.accept(cloudKitShareMetadata)

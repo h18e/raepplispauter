@@ -7,6 +7,7 @@ struct RootView: View {
 
     @Environment(\.managedObjectContext) private var context
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var sharing: SharingController
 
     @FetchRequest(sortDescriptors: [NSSortDescriptor(key: "startDate", ascending: false)],
                   animation: .default)
@@ -24,6 +25,17 @@ struct RootView: View {
         }
         .sheet(isPresented: $showTripEditor) {
             TripEditorView(trip: nil)
+        }
+        // Fehler beim Annehmen einer Einladung passieren im Hintergrund – sie
+        // haben sonst keine Oberfläche, in der sie auftauchen könnten. Ohne
+        // diesen Hinweis scheitert das Annehmen stumm und man sucht den Fehler
+        // an der falschen Stelle.
+        .alert(L.errorTitle,
+               isPresented: Binding(get: { sharing.lastError != nil },
+                                    set: { if !$0 { sharing.clearError() } })) {
+            Button(L.ok, role: .cancel) { sharing.clearError() }
+        } message: {
+            Text(sharing.lastError ?? "")
         }
         // Das Sperrbildschirm-Widget liest eine Momentaufnahme, die hier
         // nachgeführt wird. Vier Anlässe, bei denen sie veralten könnte:

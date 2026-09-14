@@ -263,6 +263,7 @@ public enum L {
     public static let sharingUnknownParticipant = t("sharing.unknownParticipant", "Unbekannte Teilnehmer")
     public static let sharingNoSharedStore = t("sharing.noSharedStore", "Dr geteilti Spycher isch nid bereit.")
     public static let sharingAccepted = t("sharing.accepted", "Iiladig aagno – d Kassä isch jetz da.")
+    public static let sharingAcceptReceived = t("sharing.acceptReceived", "Iiladig empfange, wird aagno …")
     public static let sharingCreateFailed = t("sharing.createFailed", "D Freigab het nid chönne erstellt wärde.")
     public static let sharingParticipant = t("sharing.participant", "Du bisch iiglade worde")
 
